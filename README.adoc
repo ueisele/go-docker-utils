@@ -1,0 +1,38 @@
+= Go Docker Utility Belt (GoDub)
+
+Goal is to develop a replacement for link:https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py[Docker Utility Belt] which is written Python.
+
+The _Go Docker Utility Belt_ are written in Go instead to be able to reduce the size of Docker containers.
+
+== Quickstart
+
+_GoDub_ provides a Visual Studio Code Remote Development in Containers set up. 
+Just re-open this folder as Remote-Container, and you have a Goland development environment.
+
+Instructions about how to configure Remote Development: https://code.visualstudio.com/docs/remote/containers-tutorial
+
+=== Build
+
+----
+go build -o godub -ldflags "-X main.AppVersionMetadata=$(date -u +%s)"
+----
+
+=== Run
+
+----
+./godub
+----
+
+=== Initialize Project
+
+Typically this is not required, because go.mod is added to Git. However, to re-create it run_
+
+----
+go mod init github.com/ueisele/go-docker-utils
+go mod tidy
+----
+
+== Thanks to
+
+* https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
+* https://github.com/subfuzion/envtpl/blob/master/cmd/envtpl/version.go
