@@ -10,8 +10,8 @@ import (
 var (
 	ensureCmd = &cobra.Command{
 		Use:   "ensure",
-		Short: "Uses go template and environment variables to generate configuration files.",
-		Long:  "Uses go template and environment variables to generate configuration files.",
+		Short: "Ensures that environment variables are defined.",
+		Long:  "Ensures that environment variables are defined.",
 		SilenceUsage: true,
 		RunE:  runEnsureCmd,
 	}
