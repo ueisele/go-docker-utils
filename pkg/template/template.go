@@ -187,9 +187,9 @@ func (t *dubtemplate) TemplateTextToWriter(tplString string, outWriter io.Writer
 		return fmt.Errorf("could not parse template: %v", err)
 	}
 
-	tpl.Execute(outWriter, t.context)
+	err = tpl.Execute(outWriter, t.context)
 	if err != nil {
-		return fmt.Errorf("could not render template: %v", err)
+		return fmt.Errorf("could not render %v", err)
 	}
 
 	return nil

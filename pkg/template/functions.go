@@ -1,9 +1,10 @@
 package template
 
 import (
-	"text/template"
 	"os"
+	"regexp"
 	"strings"
+	"text/template"
 )
 
 // TxtFuncMap returns a 'text/template'.FuncMap
@@ -24,14 +25,28 @@ var genericMap = map[string]interface{}{
 	"heygodub": func() string { return "Hello :)" },
 
 	// Env functions
-	"environment":  		environment,
-	"env_to_prop":			env_to_prop,
-	"parse_log4j_loggers":	parse_log4j_loggers,
+	"hasEnv":				hasEnv,
+	"envAsMap":		  		envAsMap,
+	"envToProp":			envToProp,
+
+	// Map functions
+	"filterMapKey":			filterMapKey,
+	"replaceMapKeyPrefix":	replaceMapKeyPrefix,
+	"mapKeyToProp":			mapKeyToProp,
+	"parseKvCsvList":		parseKvCsvList,
+
+	// Verify functions
+	"required":				required,
 }
 
-// custom function that returns key, value for all environment variable keys matching prefix
+func hasEnv(key string) bool {
+	_, has := os.LookupEnv(key)
+	return has
+}
+
+// custom function that returns key, value for all envAsMap variable keys matching prefix
 // (see original envtpl: https://pypi.org/project/envtpl/)
-func environment(prefix string) map[string]string {
+func envAsMap(prefix string) map[string]string {
 	env := make(map[string]string)
 	for _, setting := range os.Environ() {
 		pair := strings.SplitN(setting, "=", 2)
@@ -75,17 +90,44 @@ func environment(prefix string) map[string]string {
 //
 // See:
 //   Original dub: https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
-func env_to_prop(env_prefix string, prop_prefix string, exclude ...string) map[string]string {
-	props := make(map[string]string)
-	for key, value := range environment(env_prefix) {
-		if !contains(exclude, key) {
-			raw_name := strings.ToLower(strings.TrimPrefix(key, env_prefix))
-			prop_dash := strings.Join(strings.Split(raw_name, "___"), "-")
-			prop_underscore := strings.Join(strings.Split(prop_dash, "__"), "_")
-			prop_dot := strings.Join(strings.Split(prop_underscore, "_"), ".")
-			prop_name := prop_prefix + prop_dot
-			props[prop_name] = value
+func envToProp(env_prefix string, prop_prefix string, exclude ...interface{}) map[string]string {
+	return mapKeyToProp(replaceMapKeyPrefix(env_prefix, prop_prefix, filterMapKey(exclude, envAsMap(env_prefix))))
+}
+
+func filterMapKey(exclude interface{}, sourceMap map[string]string) map[string]string {
+	resultMap := make(map[string]string)
+	for key, value := range sourceMap {
+		if !contains(toListOfStrings(exclude), key) {
+			resultMap[key] = value
 		}
+	}
+	return resultMap
+}
+
+func replaceMapKeyPrefix(prefix string, replacement string, sourceMap map[string]string) map[string]string {
+	resultMap := make(map[string]string)
+	for key, value := range sourceMap {
+		resultMap[replacement + strings.TrimPrefix(key, prefix)] = value
+	}
+	return resultMap
+}
+
+func mapKeyToProp(sourceMap map[string]string) map[string]string {
+	props := make(map[string]string)
+	to_dot_pattern := regexp.MustCompile("[^_](_)[^_]")
+	for key, value := range sourceMap {
+		raw_name := strings.ToLower(key)
+		var prop_dot string = raw_name
+		for matches := to_dot_pattern.FindAllString(prop_dot, -1); 
+			len(matches) > 0; 
+			matches = to_dot_pattern.FindAllString(prop_dot, -1) {
+			for _, frac := range matches {
+				prop_dot = strings.Replace(prop_dot, frac, strings.ReplaceAll(frac, "_", "."), 1)
+			}
+		}
+		prop_dash := strings.Join(strings.Split(prop_dot, "___"), "-")
+		prop_underscore := strings.Join(strings.Split(prop_dash, "__"), "_")
+		props[prop_underscore] = value
 	}
 	return props
 }
@@ -100,25 +142,22 @@ func contains(s []string, str string) bool {
 	return false
 }
 
-// Parses *_LOG4J_PROPERTIES string and returns a list of log4j properties.
+// Parses a list of key/value pairs separated by commas.
 //
-// For example: if LOG4J_PROPERTIES = "foo.bar=DEBUG,baz.bam=TRACE"
-//   and
-//   defaults={"foo.bar: "INFO"}
+// For example for "foo.bar=DEBUG,baz.bam=TRACE"
 //   the this function will return {"foo.bar: "DEBUG", "baz.bam": "TRACE"}
 //
 // Args:
-//   overrides_str: String containing the overrides for the default properties.
-//   defaults: Map of default log4j properties.
+//   kvList: String containing the comma separated list of key/value pairs.
 //
 // Returns:
-//   Map of log4j properties.
+//   Map of key/value pairs.
 //
 // See:
 //   Original dub: https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
-func parse_log4j_loggers(overrides_str string, defaults ...interface{}) map[string]string {
-	props := to_map_of_strings(defaults)
-	for _, override := range strings.Split(overrides_str, ",") {
+func parseKvCsvList(kvList string) map[string]interface{} {
+	props := make(map[string]interface{})
+	for _, override := range strings.Split(kvList, ",") {
 		tokens := strings.SplitN(override, "=", 2)
 		if len(tokens) == 2 {
 			props[tokens[0]] = tokens[1]
@@ -127,17 +166,31 @@ func parse_log4j_loggers(overrides_str string, defaults ...interface{}) map[stri
 	return props
 }
 
-func to_map_of_strings(args []interface{}) map[string]string {
-	stringMap := make(map[string]string)
-	for _, arg := range args {
-		switch t := arg.(type) {
-		  case map[string]string:
-			for k, v := range t {
-				stringMap[k] = v
-			}
-		  default:
-			panic("Unknown argument")
+func required(warn string, val interface{}) interface{} {
+	if val == nil {
+		panic(warn)
+	} else if _, ok := val.(string); ok {
+		if val == "" {
+			panic(warn)
 		}
 	}
-	return stringMap
+	return val
+}
+
+func toListOfStrings(args ...interface{}) []string {
+	stringList := make([]string, 00)
+	for _, arg := range args {
+		switch t := arg.(type) {
+		  case []string:
+			stringList = append(stringList, t...)
+		  case string:
+			stringList = append(stringList, t)
+		  case []interface{}:
+			for _, value := range t {
+				stringList = append(stringList, toListOfStrings(value)...)
+			}
+		  default:
+		}
+	}
+	return stringList
 }

@@ -24,7 +24,7 @@ var (
 func init() {
 	templateCmd.Flags().StringVarP(&in, "in", "i", "", "The template file.")
 	templateCmd.Flags().StringVarP(&out, "out", "o", "", "The output file.")
-	templateCmd.Flags().StringVarP(&missingkey, "missingkey", "m", "error", "Strategy for dealing with missing keys: [invalid|zero|error]")
+	templateCmd.Flags().StringVarP(&missingkey, "missingkey", "m", "default", "Strategy for dealing with missing keys: [default|zero|error]")
 }
 
 func runTemplateCmd(cmd *cobra.Command, args []string) error {
