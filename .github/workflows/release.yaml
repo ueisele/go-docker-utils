@@ -18,5 +18,5 @@ jobs:
         goversion: 1.16
         binary_name: godub
         executable_compression: upx
-        ldflags: -s -w -linkmode external -extldflags -static -X main.AppVersionBuild=$(git rev-parse --short=7 HEAD) -X main.AppVersionMetadata=$(date -u +%s)
+        build_flags: -ldflags "-s -w -linkmode external -extldflags -static -X main.AppVersionBuild=$(git rev-parse --short=7 HEAD) -X main.AppVersionMetadata=$(date -u +%s)"
         sha256sum: true
