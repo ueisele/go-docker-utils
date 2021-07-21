@@ -14,7 +14,7 @@ Instructions about how to configure Remote Development: https://code.visualstudi
 === Build
 
 ----
-go build -o godub -ldflags "-X main.AppVersionMetadata=$(date -u +%s)"
+./build.sh godub
 ----
 
 === Run
@@ -34,5 +34,5 @@ go mod tidy
 
 == Thanks to
 
-* https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
-* https://github.com/subfuzion/envtpl/blob/master/cmd/envtpl/version.go
+* https://github.com/confluentinc/confluent-docker-utils
+* https://github.com/subfuzion/envtpl

@@ -1,11 +1,11 @@
 FROM golang:1.16.6-alpine as builder
 
-RUN apk add --no-cache gcc g++ \
+RUN apk add --no-cache gcc g++ upx git \
     && rm -rf /var/cache/apk/*
 
 WORKDIR /workspace
 COPY . .
-RUN go build -o godub -tags 'netgo osusergo' -ldflags "-linkmode external -extldflags -static -X main.AppVersionMetadata=$(date -u +%s)"
+RUN ./build-static.sh godub
 
 FROM alpine:3.14.0
 RUN apk add --no-cache ca-certificates \

@@ -11,12 +11,14 @@ const (
 	AppVersionMajor = 0
 	AppVersionMinor = 1
 	AppVersionPatch = 0
-	AppVersionBuild = ""
 )
 
-// version build metadata set by build flag:
+// version metadata set by build flag:
 //     go build -ldflags "-X cmd.AppVersionMetadata=$(date -u +%s)"
 var AppVersionMetadata string
+// version build set by build flag:
+//	   go build -ldflags "-X main.AppVersionBuild=$(git rev-parse --short=7 HEAD)"
+var AppVersionBuild string
 
 func Version() string {
 	// major.minor.patch[-prerelease+buildmetadata]
