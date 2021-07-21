@@ -1,20 +1,22 @@
+name: Release
+
 on: 
   release:
     types: [created]
 
 jobs:
   release-linux-amd64:
-    name: release linux/amd64
+    name: release for linux/amd64
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - uses: wangyoucao577/go-release-action@v1.19
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        github_token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
         goos: linux
         goarch: amd64
         goversion: 1.16
         binary_name: godub
         executable_compression: upx
-        ldflags: -s -w -X main.AppVersionBuild=$(git rev-parse --short=7 HEAD) -X main.AppVersionMetadata=$(date -u +%s)
+        ldflags: -s -w -linkmode external -extldflags -static -X main.AppVersionBuild=$(git rev-parse --short=7 HEAD) -X main.AppVersionMetadata=$(date -u +%s)
         sha256sum: true
