@@ -14,6 +14,7 @@ var (
 		Use:   "template",
 		Short: "Uses go template and environment variables to generate configuration files.",
 		Long:  "Uses go template and environment variables to generate configuration files.",
+		SilenceUsage: true,
 		RunE:  runTemplateCmd,
 	}
 	in 			string
