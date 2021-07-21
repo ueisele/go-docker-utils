@@ -19,4 +19,5 @@ func Execute(version string) error {
 func init()  {
 	rootCmd.AddCommand(templateCmd)
 	rootCmd.AddCommand(ensureCmd)
+	rootCmd.AddCommand(pathCmd)
 }
