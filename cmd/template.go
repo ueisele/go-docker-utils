@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 
@@ -30,8 +29,9 @@ func init() {
 
 func runTemplateCmd(cmd *cobra.Command, args []string) error {
 	var tplFile *os.File
+	var err error
 	if len(in) > 0 {
-		tplFile, err := os.Open(in)
+		tplFile, err = os.Open(in)
 		if err != nil {
 			return fmt.Errorf("could not open template file %s: %v", in, err)
 		}
@@ -42,7 +42,7 @@ func runTemplateCmd(cmd *cobra.Command, args []string) error {
 
 	var outFile *os.File
 	if len(out) > 0 {
-		outFile, err := os.Create(out)
+		outFile, err = os.Create(out)
 		if err != nil {
 			return fmt.Errorf("could not create output file %s: %v", out, err)
 		}
@@ -52,5 +52,5 @@ func runTemplateCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	dubtemplate := template.NewDubTemplateWithDefaults("missingkey=" + missingkey)
-	return dubtemplate.TemplateInputToWriter(bufio.NewReader(tplFile), bufio.NewWriter(outFile))
+	return dubtemplate.TemplateOsFileToOsFile(tplFile, outFile)
 }

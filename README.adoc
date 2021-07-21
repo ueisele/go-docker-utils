@@ -1,6 +1,6 @@
 = Go Docker Utility Belt (GoDub)
 
-Goal is to develop a replacement for link:https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py[Docker Utility Belt] which is written Python.
+Goal is to develop a alternative for link:https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py[Docker Utility Belt] which is written Python.
 
 The _Go Docker Utility Belt_ are written in Go instead to be able to reduce the size of Docker containers.
 

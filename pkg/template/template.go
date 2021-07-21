@@ -18,16 +18,19 @@ type DubTemplate interface {
 	// Uses Go template and environment variables to create configuration files.
 	//
 	// Args:
-	//   template_file: template file path.
-	//   output_file: output file path.
+	//   templateFileName: template file path.
+	//   outputFileName: output file path.
 	//
 	// Returns:
 	//   Returns error if an Exception occurs.
 	//
 	// See:
 	//   Original dub: https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
-	TemplateFileToFile(template_file string, output_file string) error
-	MustTemplateFileToFile(template_file string, output_file string)
+	TemplateFileToFile(templateFileName string, outputFileName string) error
+	MustTemplateFileToFile(templateFileName string, outputFileName string)
+
+	TemplateOsFileToOsFile(templateFile *os.File, outputFile *os.File) error
+	MustTemplateOsFileToOsFile(templateFile *os.File, outputFile *os.File)
 
 	TemplateInputToWriter(tplReader io.Reader, outWriter io.Writer) error
 	MustTemplateInputToWriter(tplReader io.Reader, outWriter io.Writer)
@@ -94,31 +97,49 @@ type dubtemplate struct {
 	options []string
 }
 
-func (t *dubtemplate) MustTemplateFileToFile(template_file string, output_file string) {
-	err := t.TemplateFileToFile(template_file, output_file)
+func (t *dubtemplate) MustTemplateFileToFile(templateFileName string, outputFileName string) {
+	err := t.TemplateFileToFile(templateFileName, outputFileName)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (t *dubtemplate) TemplateFileToFile(template_file string, output_file string) error {
-	var tplReader *bufio.Reader
-	tplFile, err := os.Open(template_file)
+func (t *dubtemplate) TemplateFileToFile(templateFileName string, outputFileName string) error {
+	tplFile, err := os.Open(templateFileName)
 	if err != nil {
-		return fmt.Errorf("could not open template file %s: %v", template_file, err)
+		return fmt.Errorf("could not open template file %s: %v", templateFileName, err)
 	}
 	defer tplFile.Close()
-	tplReader = bufio.NewReader(tplFile)
 
-	var outWriter *bufio.Writer
-	outFile, err := os.Create(output_file);
+	outFile, err := os.Create(outputFileName);
 	if err != nil {
-		return fmt.Errorf("could not create output file %s: %v", output_file, err)
+		return fmt.Errorf("could not create output file %s: %v", outputFileName, err)
 	}
 	defer outFile.Close()
-	outWriter = bufio.NewWriter(outFile)
 
-	return t.TemplateInputToWriter(tplReader, outWriter)
+	return t.TemplateOsFileToOsFile(tplFile, outFile)
+}
+
+func (t *dubtemplate) MustTemplateOsFileToOsFile(templateFile *os.File, outputFile *os.File) {
+	err := t.TemplateOsFileToOsFile(templateFile, outputFile)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (t *dubtemplate) TemplateOsFileToOsFile(templateFile *os.File, outputFile *os.File) error {
+	tplReader := bufio.NewReader(templateFile)
+	outWriter := bufio.NewWriter(outputFile)
+	defer outWriter.Flush()
+	err := t.TemplateInputToWriter(tplReader, outWriter)
+	if err != nil {
+		return err
+	}
+	err = outWriter.Flush()
+	if err != nil {
+		return fmt.Errorf("could not write to output: %v", err)
+	}
+	return nil
 }
 
 func (t *dubtemplate) MustTemplateInputToWriter(tplReader io.Reader, outWriter io.Writer) {
