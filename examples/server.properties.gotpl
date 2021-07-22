@@ -1,5 +1,3 @@
-{{- required "The environment variable KAFKA_OPTS must be defined!" .KAFKA_OPTS -}}
-
 {{- $excluded_props := list
     "KAFKA_VERSION" 
     "KAFKA_HEAP_OPTS" 

@@ -19,4 +19,5 @@ jobs:
         binary_name: godub
         executable_compression: upx
         ldflags: -s -w -linkmode external -extldflags -static
+        md5sum: false
         sha256sum: true

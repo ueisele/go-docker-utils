@@ -6,6 +6,7 @@ RUN apk add --no-cache gcc g++ upx git \
 WORKDIR /workspace
 COPY . .
 RUN ./build-static.sh godub
+RUN go test -v ./...
 
 FROM alpine:3.14.0
 RUN apk add --no-cache ca-certificates \
