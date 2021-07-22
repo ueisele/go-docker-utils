@@ -102,33 +102,51 @@ Flags:
 
 ==== Examples
 
+.Ensures that the environment variable `KAFKA_ADVERTISED_LISTENERS` is defined ...
 [source, bash]
 ----
 export KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
 ./godub ensure KAFKA_ADVERTISED_LISTENERS
 ----
 
+
+.\... and completes with exit status `0`
 [source, bash]
 ----
 echo $?
 0
 ----
 
+.For a environment variable like in this example `KAFKA_OPTS`, which is not defined ...
 [source, bash]
 ----
+export KAFKA_OPTS=
 ./godub ensure KAFKA_OPTS
 ----
 
+.\... `GoDub` completes with exit status `1`
 [source, bash]
 ----
 Error: environment variables are missing: [KAFKA_OPTS]
-----
-
-[source, bash]
-----
 echo $?
 1
 ----
+
+.Ensures that at least one of the environment variables `KAFKA_ADVERTISED_LISTENERS` and `KAFKA_LISTENERS` are defined ...
+[source, bash]
+----
+export KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
+export KAFKA_LISTENERS=
+./godub ensure --at-least-one KAFKA_ADVERTISED_LISTENERS KAFKA_LISTENERS
+----
+
+.\... and completes with exit status  `0`, because `KAFKA_ADVERTISED_LISTENERS` is defined
+[source, bash]
+----
+echo $?
+0
+----
+
 
 === Path
 
