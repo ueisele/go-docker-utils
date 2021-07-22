@@ -1,0 +1,18 @@
+{{- define "T1" -}}
+My IP Address: {{ anyIpAddress }}
+{{- end -}}
+
+{{- define "T2" -}}
+{{- range $key, $value := . -}}
+{{ $key }}={{ $value }}
+{{ end }}
+{{- end -}}
+
+My First Template:
+{{ template "T1" . }}
+
+My Second Template:
+{{ template "T2" . }}
+
+My Third Template:
+{{ template "T2" envMap "KAFKA_" }}

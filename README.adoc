@@ -8,7 +8,7 @@
 The `Go Docker Utility Belt`, or short `GoDub`, is a tool to simplify and support the configuration of applications on Docker images.
 One major feature is the templating support which allows it to render link:https://pkg.go.dev/text/template[Go templates] on the command line usinge environment variables.
 
-It is directly inspired by the original link:https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py[Docker Utility Belt] written by Confluent. The original is a Python tool, which for example uses links:https://jinja.palletsprojects.com/en/latest/[Jinja2] for redering templates.
+It is directly inspired by the original link:https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py[Docker Utility Belt] written by Confluent. The original is a Python tool, which for example uses link:https://jinja.palletsprojects.com/en/latest/[Jinja2] for redering templates.
 
 In addition it is also inspred by link:https://github.com/subfuzion/envtpl[envtpl] tool, which is written in Go. The majot difference between _envtpl_ and _GoDub_ is, that _GoDub_ includes additional templating functions, for example to transform environment variable keys to a property format. 
 
@@ -79,9 +79,9 @@ advertised.listeners=PLAINTEXT://127.0.0.1:9092
 node.id=1
 ----
 
-The template link:examples/server.properties.gotpl[] makes use of the `envToProp` function provided by `GoDub`, which transforms environent variable keys to properties. This feature was ported from Confluent`s link:https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py[Docker Utility Belt].
+The template link:examples/server.properties.gotpl[] makes use of the `envToProp` function provided by `GoDub`, which transforms environment variable keys to properties. This feature was ported from Confluent`s link:https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py[Docker Utility Belt].
 
-The reason why the environment variable `KAFKA_LOG4J_LOGGERS` is not added, is that it is defined as an property to exclude (`$excluded_props`).
+The reason why the environment variable `KAFKA_LOG4J_LOGGERS` is not added is that it is defined as an property to exclude (`$excluded_props`).
 
 .Excerpt from link:examples/server.properties.gotpl[]
 [source, go]
