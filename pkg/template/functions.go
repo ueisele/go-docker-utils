@@ -19,26 +19,28 @@ func DubTxtFuncMap() template.FuncMap {
 
 // DubFuncMap returns a copy of the basic function map as a map[string]interface{}.
 func DubFuncMap() map[string]interface{} {
-	gfm := make(map[string]interface{}, len(genericMap))
-	for k, v := range genericMap {
-		gfm[k] = v
+	dfm := make(map[string]interface{}, len(dubMap))
+	for k, v := range dubMap {
+		dfm[k] = v
 	}
-	return gfm
+	return dfm
 }
 
-var genericMap = map[string]interface{}{
+var dubMap = map[string]interface{}{
 	"heygodub": func() string { return "Hello :)" },
 
 	// Env functions
 	"hasEnv":				hasEnv,
-	"envAsMap":		  		envAsMap,
+	"envMap":		  		envMap,
 	"envToProp":			envToProp,
 
 	// Map functions
-	"filterMapKey":			filterMapKey,
-	"replaceMapKeyPrefix":	replaceMapKeyPrefix,
-	"mapKeyToProp":			mapKeyToProp,
-	"parseKvCsvList":		parseKvCsvList,
+	"filterKeyNotEqual":	filterKeyNotEqual,
+	"replaceKeyPrefix":		replaceKeyPrefix,
+	"keyToProp":			keyToProp,
+
+	// String functions
+	"kvCsvToMap":			kvCsvToMap,
 
 	// List functions
 	"filterHasPrefix":		filterHasPrefix,
@@ -52,14 +54,14 @@ var genericMap = map[string]interface{}{
 	"anyIpAddress":			anyIpAddress,
 }
 
+// checks if an environment variable with the given key exists
 func hasEnv(key string) bool {
 	_, has := os.LookupEnv(key)
 	return has
 }
 
-// custom function that returns key, value for all envAsMap variable keys matching prefix
-// (see original envtpl: https://pypi.org/project/envtpl/)
-func envAsMap(prefix string) map[string]string {
+// custom function that returns key/value for all environment variable keys matching prefix
+func envMap(prefix string) map[string]string {
 	env := make(map[string]string)
 	for _, setting := range os.Environ() {
 		pair := strings.SplitN(setting, "=", 2)
@@ -104,10 +106,10 @@ func envAsMap(prefix string) map[string]string {
 // See:
 //   Original dub: https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
 func envToProp(env_prefix string, prop_prefix string, exclude ...interface{}) map[string]string {
-	return mapKeyToProp(replaceMapKeyPrefix(env_prefix, prop_prefix, filterMapKey(exclude, envAsMap(env_prefix))))
+	return keyToProp(replaceKeyPrefix(env_prefix, prop_prefix, filterKeyNotEqual(exclude, envMap(env_prefix))))
 }
 
-func filterMapKey(exclude interface{}, sourceMap map[string]string) map[string]string {
+func filterKeyNotEqual(exclude interface{}, sourceMap map[string]string) map[string]string {
 	resultMap := make(map[string]string)
 	excludeStrings := toFlatListOfStrings(exclude)
 	for key, value := range sourceMap {
@@ -118,7 +120,7 @@ func filterMapKey(exclude interface{}, sourceMap map[string]string) map[string]s
 	return resultMap
 }
 
-func replaceMapKeyPrefix(prefix string, replacement string, sourceMap map[string]string) map[string]string {
+func replaceKeyPrefix(prefix string, replacement string, sourceMap map[string]string) map[string]string {
 	resultMap := make(map[string]string)
 	for key, value := range sourceMap {
 		resultMap[replacement + strings.TrimPrefix(key, prefix)] = value
@@ -126,7 +128,7 @@ func replaceMapKeyPrefix(prefix string, replacement string, sourceMap map[string
 	return resultMap
 }
 
-func mapKeyToProp(sourceMap map[string]string) map[string]string {
+func keyToProp(sourceMap map[string]string) map[string]string {
 	props := make(map[string]string)
 	to_dot_pattern := regexp.MustCompile("[^_](_)[^_]")
 	for key, value := range sourceMap {
@@ -146,39 +148,6 @@ func mapKeyToProp(sourceMap map[string]string) map[string]string {
 	return props
 }
 
-// contains checks if a string is present in a slice
-func contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-	return false
-}
-
-func toFlatListOfStrings(args ...interface{}) []string {
-	stringList := make([]string, 00)
-	for _, arg := range args {
-		switch reflect.TypeOf(arg).Kind() {
-		case reflect.Slice, reflect.Array:
-			value := reflect.ValueOf(arg)
-			for i := 0; i < value.Len(); i++ {
-				stringList = append(stringList, toFlatListOfStrings(value.Index(i).Interface())...)
-			}
-		default:
-			switch t := arg.(type) {
-			case string:
-				stringList = append(stringList, t)
-			case fmt.Stringer:
-				stringList = append(stringList, t.String())
-			default:
-				stringList = append(stringList, fmt.Sprintf("%v", t))
-		  }
-		}
-	}
-	return stringList
-}
-
 // Parses a list of key/value pairs separated by commas.
 //
 // For example for "foo.bar=DEBUG,baz.bam=TRACE"
@@ -192,7 +161,7 @@ func toFlatListOfStrings(args ...interface{}) []string {
 //
 // See:
 //   Original dub: https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
-func parseKvCsvList(kvList string) map[string]interface{} {
+func kvCsvToMap(kvList string) map[string]interface{} {
 	props := make(map[string]interface{})
 	for _, override := range strings.Split(kvList, ",") {
 		tokens := strings.SplitN(override, "=", 2)
@@ -246,15 +215,48 @@ func filterHasPrefix(prefix string, list interface{}) (interface{}, error) {
 	}
 }
 
-func required(warn string, val interface{}) interface{} {
-	if val == nil || reflect.ValueOf(val).IsNil() {
-		panic(warn)
-	} else if _, ok := val.(string); ok {
-		if val == "" || val == "<nil>" {
-			panic(warn)
+// contains checks if a string is present in a slice
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
 		}
 	}
-	return val
+	return false
+}
+
+func toFlatListOfStrings(args ...interface{}) []string {
+	stringList := make([]string, 00)
+	for _, arg := range args {
+		switch reflect.TypeOf(arg).Kind() {
+		case reflect.Slice, reflect.Array:
+			value := reflect.ValueOf(arg)
+			for i := 0; i < value.Len(); i++ {
+				stringList = append(stringList, toFlatListOfStrings(value.Index(i).Interface())...)
+			}
+		default:
+			switch t := arg.(type) {
+			case string:
+				stringList = append(stringList, t)
+			case fmt.Stringer:
+				stringList = append(stringList, t.String())
+			default:
+				stringList = append(stringList, fmt.Sprintf("%v", t))
+		  }
+		}
+	}
+	return stringList
+}
+
+func required(warn string, val interface{}) (interface{}, error) {
+	if val == nil || reflect.ValueOf(val).IsNil() {
+		return nil, fmt.Errorf(warn)
+	} else if _, ok := val.(string); ok {
+		if val == "" || val == "<nil>" {
+			return nil, fmt.Errorf(warn)
+		}
+	}
+	return val, nil
 }
 
 const (

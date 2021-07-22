@@ -10,6 +10,7 @@ require (
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/spf13/cobra v1.2.1
-	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
-	inet.af/netaddr v0.0.0-20210719174348-f6a6f43734d1 // indirect
+	github.com/stretchr/testify v1.7.0
+	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
+	inet.af/netaddr v0.0.0-20210721214506-ce7a8ad02cc1
 )

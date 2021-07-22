@@ -8,8 +8,6 @@ COPY . .
 RUN ./build-static.sh godub
 RUN go test -v ./...
 
-FROM alpine:3.14.0
-RUN apk add --no-cache ca-certificates \
-    && rm -rf /var/cache/apk/*
+FROM busybox:stable-musl
 COPY --from=builder /workspace/godub /godub
-CMD ["/godub"]
+ENTRYPOINT ["/godub"]

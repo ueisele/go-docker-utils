@@ -6,8 +6,9 @@ import (
 var (
 	rootCmd = &cobra.Command{
 		Use:	"godub",
-		Short:	"godub is a tool which contains a set of utility functions helpful for running docker containers.",
-		Long:	"godub is a tool inspired by the Confluent Docker utility belt which contains a set of utility functions helpful for running docker containers.",
+		Short:	"GoDub is a tool which contains a set of utility functions helpful for running Docker containers.",
+		Long:	"DoDub is a tool inspired by the Confluent Docker utility belt which contains a set of utility functions helpful for running Docker containers.",
+		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 	}
 )
 

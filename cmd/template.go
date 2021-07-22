@@ -12,8 +12,8 @@ import (
 var (
 	templateCmd = &cobra.Command{
 		Use:   "template",
-		Short: "Uses go template and environment variables to generate configuration files.",
-		Long:  "Uses go template and environment variables to generate configuration files.",
+		Short: "Uses Go template and environment variables to generate configuration files.",
+		Long:  "Uses Go template and environment variables to generate configuration files.",
 		SilenceUsage: true,
 		RunE:  runTemplateCmd,
 	}
@@ -23,8 +23,8 @@ var (
 )
 
 func init() {
-	templateCmd.Flags().StringVarP(&in, "in", "i", "", "The template file.")
-	templateCmd.Flags().StringVarP(&out, "out", "o", "", "The output file.")
+	templateCmd.Flags().StringVarP(&in, "in", "i", "", "The template file. If not provided, it is read from stdin.")
+	templateCmd.Flags().StringVarP(&out, "out", "o", "", "The output file. If not provided, it is written from stdout.")
 	templateCmd.Flags().StringVarP(&missingkey, "missingkey", "m", "default", "Strategy for dealing with missing keys: [default|zero|error]")
 }
 

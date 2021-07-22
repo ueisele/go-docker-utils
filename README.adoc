@@ -1,10 +1,140 @@
+:toc:
+:toc-title:
+:toclevels: 2
+:sectnums:
+
 = Go Docker Utility Belt (GoDub)
 
-Goal is to develop a alternative for link:https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py[Docker Utility Belt] which is written Python.
+The `Go Docker Utility Belt`, or short `GoDub`, is a tool to simplify and support the configuration of applications on Docker images.
+One major feature is the templating support which allows it to render link:https://pkg.go.dev/text/template[Go templates] on the command line usinge environment variables.
 
-The _Go Docker Utility Belt_ are written in Go instead to be able to reduce the size of Docker containers.
+It is directly inspired by the original link:https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py[Docker Utility Belt] written by Confluent. The original is a Python tool, which for example uses links:https://jinja.palletsprojects.com/en/latest/[Jinja2] for redering templates.
 
-== Quickstart
+In addition it is also inspred by link:https://github.com/subfuzion/envtpl[envtpl] tool, which is written in Go. The majot difference between _envtpl_ and _GoDub_ is, that _GoDub_ includes additional templating functions, for example to transform environment variable keys to a property format. 
+
+The main reason to develip _GoDob_ was, to provide templating support for configuration files which need to be part of a Docker image, without the need to install Python.
+
+== Get it
+
+[source, bash]
+----
+go get github.com/ueisele/go-docker-utils
+----
+
+== Usage
+
+----
+godub [command]
+
+Available Commands:
+  template    Uses Go template and environment variables to generate configuration files.
+  ensure      Ensures that environment variables are defined.
+  path        Checks a path on the filesystem for permissions.
+----
+
+`GoDub` provides the three base functions `template`, `ensure` and `path`.
+
+=== Template
+
+----
+godub template [flags]
+
+Flags:
+  -i, --in string           The template file. If not provided, it is read from stdin.
+  -o, --out string          The output file. If not provided, it is written from stdout.
+  -m, --missingkey string   Strategy for dealing with missing keys: [default|zero|error] (default "default")
+----
+
+* If `--in` is not provided, `GoDub` reads from `stdin`
+* If `--out` is not provided, `GoDub` writes to `stdout`
+* If `missingkey` is unset or set to either `default` or `invalid`, `GoDub` follows the default behavior of the link:https://golang.org/pkg/text/template/#Template.Option[golang template library] and missing keys in the template will be filled in with the string `<no value>`. `If missingkey` is set to `zero`, missing keys will be filled in with the `zero` value for their data type (ie: an empty string). If missingkey is set to `error`, `GoDub` will fail.
+
+==== Examples
+
+.Renders a template from `stdin` ...
+[source, bash]
+----
+export GREET="Hey :)"
+echo "{{ .GREET }}" | ./godub template
+----
+
+.\... and outputs `Hey :)` to `stdout`.
+[source]
+----
+Hey :)
+----
+
+.Renders the template from file `examples/server.properties.gotpl` ... 
+[source, bash]
+----
+export KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
+export KAFKA_NODE_ID=1
+export KAFKA_LOG4J_LOGGERS=kafka.server.KafkaApis=TRACE
+./godub template < examples/server.properties.gotpl > examples/server.properties
+----
+
+.\... and writes the output to file `examples/server.properties`
+----
+advertised.listeners=PLAINTEXT://127.0.0.1:9092
+node.id=1
+----
+
+The template link:examples/server.properties.gotpl[] makes use of the `envToProp` function provided by `GoDub`, which transforms environent variable keys to properties. This feature was ported from Confluent`s link:https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py[Docker Utility Belt].
+
+The reason why the environment variable `KAFKA_LOG4J_LOGGERS` is not added, is that it is defined as an property to exclude (`$excluded_props`).
+
+.Excerpt from link:examples/server.properties.gotpl[]
+[source, go]
+----
+{{- range $key, $value := envToProp "KAFKA_" "" $excluded_props -}}
+{{ $key }}={{ tpl $value }}
+{{ end }}
+----
+
+=== Ensure
+
+----
+godub ensure [flags]
+
+Flags:
+  -a, --at-least-one   By the default it is ensured that all environment variables are defined. If this flag is set, it is enough if at least one is defined.
+----
+
+==== Examples
+
+[source, bash]
+----
+export KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
+./godub ensure KAFKA_ADVERTISED_LISTENERS
+----
+
+[source, bash]
+----
+echo $?
+0
+----
+
+[source, bash]
+----
+./godub ensure KAFKA_OPTS
+----
+
+[source, bash]
+----
+Error: environment variables are missing: [KAFKA_OPTS]
+----
+
+[source, bash]
+----
+echo $?
+1
+----
+
+=== Path
+
+== Template Functions
+
+== Development
 
 _GoDub_ provides a Visual Studio Code Remote Development in Containers set up. 
 Just re-open this folder as Remote-Container, and you have a Goland development environment.
@@ -13,26 +143,36 @@ Instructions about how to configure Remote Development: https://code.visualstudi
 
 === Build
 
+[source, bash]
 ----
 ./build.sh godub
 ----
 
 === Run
 
+[source, bash]
 ----
 ./godub
+----
+
+=== Tests
+
+[source, bash]
+----
+go test -v ./...
 ----
 
 === Initialize Project
 
 Typically this is not required, because go.mod is added to Git. However, to re-create it run_
 
+[source, bash]
 ----
 go mod init github.com/ueisele/go-docker-utils
 go mod tidy
 ----
 
-== Thanks to
+== Similar Tools
 
 * https://github.com/confluentinc/confluent-docker-utils
 * https://github.com/subfuzion/envtpl

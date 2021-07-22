@@ -205,7 +205,7 @@ func (t *dubtemplate) createTemplate(tplString string) (*template.Template, erro
 }
 
 func (t *dubtemplate) tplFuncMap() map[string]interface{} {
-	gfm := make(map[string]interface{}, len(genericMap))
+	gfm := make(map[string]interface{}, len(dubMap))
 	gfm["tpl"] = t.MustTemplateText
 	return gfm
 }

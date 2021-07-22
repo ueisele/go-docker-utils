@@ -18,7 +18,7 @@ services:
                 aliases:
                     - intern
                 priority: 10
-        command: sh
+        entrypoint: sh
         tty: true
 
 networks:
