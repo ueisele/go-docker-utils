@@ -27,19 +27,14 @@ type DubTemplate interface {
 	// See:
 	//   Original dub: https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
 	TemplateFileToFile(templateFileName string, outputFileName string) error
-	MustTemplateFileToFile(templateFileName string, outputFileName string)
 
 	TemplateOsFileToOsFile(templateFile *os.File, outputFile *os.File) error
-	MustTemplateOsFileToOsFile(templateFile *os.File, outputFile *os.File)
 
 	TemplateInputToWriter(tplReader io.Reader, outWriter io.Writer) error
-	MustTemplateInputToWriter(tplReader io.Reader, outWriter io.Writer)
 
 	TemplateText(tplString string) (string, error)
-	MustTemplateText(tplString string) string
 
 	TemplateTextToWriter(tplString string, outWriter io.Writer) error
-	MustTemplateTextToWriter(tplString string, outWriter io.Writer)
 }
 
 // Uses Go template to create configuration files with environment variables as context.
@@ -97,13 +92,6 @@ type dubtemplate struct {
 	options []string
 }
 
-func (t *dubtemplate) MustTemplateFileToFile(templateFileName string, outputFileName string) {
-	err := t.TemplateFileToFile(templateFileName, outputFileName)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func (t *dubtemplate) TemplateFileToFile(templateFileName string, outputFileName string) error {
 	tplFile, err := os.Open(templateFileName)
 	if err != nil {
@@ -118,13 +106,6 @@ func (t *dubtemplate) TemplateFileToFile(templateFileName string, outputFileName
 	defer outFile.Close()
 
 	return t.TemplateOsFileToOsFile(tplFile, outFile)
-}
-
-func (t *dubtemplate) MustTemplateOsFileToOsFile(templateFile *os.File, outputFile *os.File) {
-	err := t.TemplateOsFileToOsFile(templateFile, outputFile)
-	if err != nil {
-		panic(err)
-	}
 }
 
 func (t *dubtemplate) TemplateOsFileToOsFile(templateFile *os.File, outputFile *os.File) error {
@@ -142,27 +123,12 @@ func (t *dubtemplate) TemplateOsFileToOsFile(templateFile *os.File, outputFile *
 	return nil
 }
 
-func (t *dubtemplate) MustTemplateInputToWriter(tplReader io.Reader, outWriter io.Writer) {
-	err := t.TemplateInputToWriter(tplReader, outWriter)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func (t *dubtemplate) TemplateInputToWriter(tplReader io.Reader, outWriter io.Writer) error {
 	tplBytes, err := ioutil.ReadAll(tplReader)
 	if err != nil {
 		return fmt.Errorf("could not read template: %v", err)
 	}
 	return t.TemplateTextToWriter(string(tplBytes), outWriter)
-}
-
-func (t *dubtemplate) MustTemplateText(tplString string) string {
-	output, err := t.TemplateText(tplString)
-	if err != nil {
-		panic(err)
-	}
-	return output
 }
 
 func (t *dubtemplate) TemplateText(tplString string) (string, error) {
@@ -172,13 +138,6 @@ func (t *dubtemplate) TemplateText(tplString string) (string, error) {
 		return "", err
 	}
 	return outBuf.String(), nil
-}
-
-func (t *dubtemplate) MustTemplateTextToWriter(tplString string, outWriter io.Writer) {
-	err := t.TemplateTextToWriter(tplString, outWriter)
-	if err != nil {
-		panic(err)
-	}
 }
 
 func (t *dubtemplate) TemplateTextToWriter(tplString string, outWriter io.Writer) error {
@@ -206,7 +165,7 @@ func (t *dubtemplate) createTemplate(tplString string) (*template.Template, erro
 
 func (t *dubtemplate) tplFuncMap() map[string]interface{} {
 	gfm := make(map[string]interface{}, len(dubMap))
-	gfm["tpl"] = t.MustTemplateText
+	gfm["tpl"] = t.TemplateText
 	return gfm
 }
 

@@ -1,4 +1,4 @@
-package template
+package engine
 
 import (
 	"fmt"
@@ -9,48 +9,46 @@ import (
 	"strings"
 	"text/template"
 	"inet.af/netaddr"
+	"github.com/Masterminds/sprig"
 )
 
-// TxtFuncMap returns a 'text/template'.FuncMap
-func DubTxtFuncMap() template.FuncMap {
-	return template.FuncMap(DubFuncMap())
-}
+func funcMap() template.FuncMap {
+	f := sprig.TxtFuncMap()
 
-// DubFuncMap returns a copy of the basic function map as a map[string]interface{}.
-func DubFuncMap() map[string]interface{} {
-	dfm := make(map[string]interface{}, len(dubMap))
-	for k, v := range dubMap {
-		dfm[k] = v
+	// Add some extra functionality
+	extra := template.FuncMap{
+		"heygodub": func() string { return "Hello :)" },
+
+		// Env functions
+		"hasEnv":				hasEnv,
+		"envMap":		  		envMap,
+		"envToProp":			envToProp,
+	
+		// Map functions
+		"filterKeyNotEqual":	filterKeyNotEqual,
+		"replaceKeyPrefix":		replaceKeyPrefix,
+		"keyToProp":			keyToProp,
+	
+		// String functions
+		"kvCsvToMap":			kvCsvToMap,
+	
+		// List functions
+		"filterHasPrefix":		filterHasPrefix,
+	
+		// Verify functions
+		"required":				required,
+	
+		// Network functions
+		"ipAddresses":			ipAddresses,
+		"ipAddress":			ipAddress,
+		"anyIpAddress":			anyIpAddress,
 	}
-	return dfm
-}
 
-var dubMap = map[string]interface{}{
-	"heygodub": func() string { return "Hello :)" },
+	for k, v := range extra {
+		f[k] = v
+	}
 
-	// Env functions
-	"hasEnv":				hasEnv,
-	"envMap":		  		envMap,
-	"envToProp":			envToProp,
-
-	// Map functions
-	"filterKeyNotEqual":	filterKeyNotEqual,
-	"replaceKeyPrefix":		replaceKeyPrefix,
-	"keyToProp":			keyToProp,
-
-	// String functions
-	"kvCsvToMap":			kvCsvToMap,
-
-	// List functions
-	"filterHasPrefix":		filterHasPrefix,
-
-	// Verify functions
-	"required":				required,
-
-	// Network functions
-	"ipAddresses":			ipAddresses,
-	"ipAddress":			ipAddress,
-	"anyIpAddress":			anyIpAddress,
+	return f
 }
 
 // checks if an environment variable with the given key exists

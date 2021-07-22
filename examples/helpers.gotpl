@@ -1,0 +1,11 @@
+{{- define "T1" -}}
+My IP Address: {{ anyIpAddress }}
+{{- end -}}
+
+{{- define "T2" -}}
+{{- range $key, $value := . -}}
+{{ $key }}={{ $value }}
+{{ end }}
+{{- end -}}
+
+Hello World
