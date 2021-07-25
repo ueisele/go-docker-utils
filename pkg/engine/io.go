@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
