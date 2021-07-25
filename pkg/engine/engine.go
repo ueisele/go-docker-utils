@@ -4,99 +4,80 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
-
-	"github.com/google/uuid"
 )
 
-type Engine struct {
-	referenceTpls map[string]string
-	config Config
+type Engine interface {
+	AddReferenceTemplate(name string, renderable string) error
+	Render(renderable string, context map[string]interface{}) (string, error)
 }
 
 type Config struct {
 	Strict bool
 }
 
-func NewEngine(referenceTpls map[string]string, config Config) *Engine {
-	return &Engine{
-		referenceTpls: referenceTpls,
-		config: config,
-	}
+type engine struct {
+	tpl *template.Template
+} 
+
+func NewEngine(config Config) Engine {
+	e := &engine{}
+	e.initTemplate(config)
+	return e
 }
 
-func (e *Engine) RenderOne(tpl string, context interface{}) (string, error) {
-	tplUuid := uuid.New().String()
-	renderedMap, err := e.RenderAll(map[string]string{tplUuid: tpl}, context)
-	if err != nil {
-		return "", err
-	}
-	return renderedMap[tplUuid], nil
-}
+func (e *engine) initTemplate(config Config) {
+	e.tpl = template.New("gotpl")
 
-func (e *Engine) RenderAll(tpls map[string]string, context interface{}) (rendered map[string]string, err error) {
-	t, err := e.createTemplate(tpls)
-	if err != nil {
-		return map[string]string{}, fmt.Errorf("could not parse %v", err)
-	}
-
-	rendered, err = e.renderTemplate(t, e.keySet(tpls), context)
-	if err != nil {
-		return map[string]string{}, fmt.Errorf("could not render %v", err)
-	}
-
-	return
-}
-
-func (e *Engine) createTemplate(tpls map[string]string) (t *template.Template, err error) {
-	t = template.New("gotpl")
-
-	if e.config.Strict {
-		t.Option("missingkey=error")
+	if config.Strict {
+		e.tpl.Option("missingkey=error")
 	} else {
 		// Not that zero will attempt to add default values for types it knows,
 		// but will still emit <no value> for others. We mitigate that later.
-		t.Option("missingkey=zero")
+		e.tpl.Option("missingkey=zero")
 	}
 
-	t.Funcs(funcMap()).Funcs(template.FuncMap{"tp2": e.RenderOne})
+	e.tpl.Funcs(funcMap()).Funcs(template.FuncMap{"tpl": e.Render})
+}
 
-	for name, tpl := range tpls {
-		if _, err := t.New(name).Parse(tpl); err != nil {
-			return nil, err
+func (e *engine) AddReferenceTemplate(name string, renderable string) error {
+	if e.tpl.Lookup(name) == nil {
+		if _, err := e.tpl.New(name).Parse(renderable); err != nil {
+			return fmt.Errorf("could not parse %s, %v", name, err)
 		}
 	}
+	return nil
+}
 
-	for name, refTpl := range e.referenceTpls {
-		if t.Lookup(name) == nil {
-			if _, err := t.New(name).Parse(refTpl); err != nil {
-				return nil, err
-			}
-		}
+func (e *engine) Render(renderable string, context map[string]interface{}) (rendered string, err error) {
+	t, err := e.createTemplate(renderable)
+	if err != nil {
+		return "", fmt.Errorf("could not parse %v", err)
+	}
+
+	rendered, err = e.renderTemplate(t, context)
+	if err != nil {
+		return "", fmt.Errorf("could not render %v", err)
 	}
 
 	return
 }
 
-func (e *Engine) renderTemplate(t *template.Template, tplNames []string, context interface{}) (rendered map[string]string, err error) {
-	rendered = make(map[string]string, len(tplNames))
-	for _, name := range tplNames {
-		var buf strings.Builder
-		if err := t.ExecuteTemplate(&buf, name, context); err != nil {
-			return map[string]string{}, err
-		}
-
-		// Work around the issue where Go will emit "<no value>" even if Options(missing=zero)
-		// is set. Since missing=error will never get here, we do not need to handle
-		// the Strict case.
-		rendered[name] = strings.ReplaceAll(buf.String(), "<no value>", "")
+func (e *engine) createTemplate(renderable string) (t *template.Template, err error) {
+	t = template.Must(e.tpl.Clone())
+	if _, err = t.Parse(renderable); err != nil {
+		return
 	}
 	return
 }
 
-func (e *Engine) keySet(m map[string]string) (keys []string) {
-	keys = make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
+func (e *engine) renderTemplate(t *template.Template, context map[string]interface{}) (string, error) {
+	var buf strings.Builder
+	if err := t.Execute(&buf, context); err != nil {
+		return "", err
 	}
-	return
+
+	// Work around the issue where Go will emit "<no value>" even if Options(missing=zero)
+	// is set. Since missing=error will never get here, we do not need to handle
+	// the Strict case.
+	return strings.ReplaceAll(buf.String(), "<no value>", ""), nil
 }

@@ -111,7 +111,6 @@ func (t *dubtemplate) TemplateFileToFile(templateFileName string, outputFileName
 func (t *dubtemplate) TemplateOsFileToOsFile(templateFile *os.File, outputFile *os.File) error {
 	tplReader := bufio.NewReader(templateFile)
 	outWriter := bufio.NewWriter(outputFile)
-	defer outWriter.Flush()
 	err := t.TemplateInputToWriter(tplReader, outWriter)
 	if err != nil {
 		return err
