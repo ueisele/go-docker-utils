@@ -34,7 +34,7 @@ func (cb *ContextBuilder) initTypeRegistry() {
 func (cb *ContextBuilder) Build() (context map[string]interface{}, err error) {
 	context = make(map[string]interface{})
 	for _, src := range cb.contexts {
-		err = mergo.Merge(context, src, mergo.WithOverride)
+		err = mergo.Merge(&context, src, mergo.WithOverride)
 		if err != nil {
 			err = fmt.Errorf("could not create context, merge was not possible: %v", err)
 			return

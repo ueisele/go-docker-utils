@@ -11,18 +11,23 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func FindFilesByGlob(pattern string) ([]string, error) {
-	filenames, err := filepath.Glob(pattern)
-	if err != nil {
-		return nil, err
-	}
-	if len(filenames) == 0 {
-		return nil, fmt.Errorf("template: pattern matches no files: %#q", pattern)
+func FileGlobsToFileNames(globs ...string) ([]string, error) {
+	filenames := make([]string, 0)
+	for _, glob := range globs {
+		filenamesOfGlob, err := filepath.Glob(glob)
+		if err!= nil {
+			return nil, err
+		}
+		for _, filename := range filenamesOfGlob {
+			if !contains(filenames, filename) {
+				filenames = append(filenames, filename)
+			}
+		}
 	}
 	return filenames, nil
 }
 
-func FileInpoutSource(filenames ...string) Source {
+func FileInputSource(filenames ...string) Source {
 	return func () <-chan *Data {
 		return FileInputProvider(filenames...)
 	}
@@ -98,23 +103,6 @@ func FileOutputSink(filename string) (Transform, error) {
 	}, nil
 }
 
-func transformerInSequence(function func (*Data) *Data, before func () error, after func () error) Transform {
-	return func (input <-chan *Data) <-chan *Data {
-		out := make(chan *Data)
-		go func() {
-			defer close(out)
-			for data := range input {
-				if data.Error == nil {
-					out <- function(data)
-				} else {
-					out <- data
-				}
-			}
-		}()
-		return out
-	}
-}
-
 func DirOutputSink(dirpath string, removeexts ...string) (Transform, error) {
 	info, err := os.Stat(dirpath)
 	if err != nil {
@@ -132,7 +120,7 @@ func DirOutputSink(dirpath string, removeexts ...string) (Transform, error) {
 		basename := filepath.Base(data.Name)
 		for _, removeext := range removeexts {
 			if filepath.Ext(basename) == removeext {
-				basename = strings.TrimSuffix(basename, "." + removeext)
+				basename = strings.TrimSuffix(basename, removeext)
 				break
 			}
 		} 
