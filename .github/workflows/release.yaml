@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: wangyoucao577/go-release-action@v1.19
+    - uses: wangyoucao577/go-release-action@v1.20
       with:
         github_token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
         goos: linux
         goarch: amd64
-        goversion: 1.16
+        goversion: 1.17
         binary_name: godub
         executable_compression: upx
         ldflags: -s -w -linkmode external -extldflags -static
