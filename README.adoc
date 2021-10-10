@@ -173,9 +173,63 @@ echo $?
 
 === Path
 
+----
+godub path [flags]
 
+Flags:
+  -e, --existence          Path must be existence (default true)
+  -r, --readable           Path must be readable
+  -w, --writeable          Path must be writeable
+  -x, --executable         Path must be executable
+  -t, --timeout duration   Time to wait for the URL to be retrievable (default 0s)
+----
+
+==== Examples
+
+.Could wait for a given amount of time for a specified file
+[source,bash]
+----
+./godub path -t 5s /app/file-which-should-exist
+----
 
 == Template Functions
+
+=== Sprig
+
+The Sprig library is included and therefore all Sprig functions are suppored (see https://masterminds.github.io/sprig/).
+
+=== Custom
+
+The following additional functions are suppored:
+
+* Test Functions
+** heygodub
+* Env functions
+** hasEnv
+** envToMap
+** envToProp
+* Map functions
+** excludeKeys
+** replaceKeyPrefix
+** toPropertiesKey
+* String functions
+** kvCsvToMap
+* List functions
+** filterHasPrefix
+* Verify functions
+** required
+* Network functions
+** ipAddresses
+** ipAddress
+** anyIpAddress
+* Format functions
+** toYAML
+** toJSON
+** toTOML
+** toProperties
+** fromProperties
+
+The functions are implemented in link:pkg/template/functions.go[].
 
 == Development
 
