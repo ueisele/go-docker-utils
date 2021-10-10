@@ -9,7 +9,7 @@ import (
 const (
 	AppName         = "godub"
 	AppVersionMajor = 0
-	AppVersionMinor = 0
+	AppVersionMinor = 1
 	AppVersionPatch = 0
 )
 

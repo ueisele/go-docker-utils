@@ -40,14 +40,15 @@ Available Commands:
 godub template [flags]
 
 Flags:
-  -i, --in string           The template file. If not provided, it is read from stdin.
-  -o, --out string          The output file. If not provided, it is written from stdout.
-  -m, --missingkey string   Strategy for dealing with missing keys: [default|zero|error] (default "default")
+  -i, --in strings       The template files (glob pattern). If not provided, it is read from stdin.
+  -o, --out string       The output file or directory. If not provided, it is written to stdout.
+  -r, --refs strings     Reference templates (glob pattern).
+  -v, --values strings   Values files (glob pattern).
+  -s, --strict           In strict mode, rendering is aborted on missing field. By default its set to zero.
 ----
 
 * If `--in` is not provided, `GoDub` reads from `stdin`
 * If `--out` is not provided, `GoDub` writes to `stdout`
-* If `missingkey` is unset or set to either `default` or `invalid`, `GoDub` follows the default behavior of the link:https://golang.org/pkg/text/template/#Template.Option[golang template library] and missing keys in the template will be filled in with the string `<no value>`. `If missingkey` is set to `zero`, missing keys will be filled in with the `zero` value for their data type (ie: an empty string). If missingkey is set to `error`, `GoDub` will fail.
 
 ==== Examples
 
@@ -87,8 +88,31 @@ The reason why the environment variable `KAFKA_LOG4J_LOGGERS` is not added is th
 [source, go]
 ----
 {{- range $key, $value := envToProp "KAFKA_" "" $excluded_props -}}
-{{ $key }}={{ tpl $value }}
+{{ $key }}={{ tpl $value $ }}
 {{ end }}
+----
+
+.Can make usage of reference templates
+[source, bash]
+---
+./godub template -i examples/define.gotpl -r examples/helpers.gotpl
+---
+
+.A reference templates can contain template definitions...
+[source, go]
+----
+{{- define "T2" -}}
+{{- range $key, $value := . -}}
+{{ $key }}={{ $value }}
+{{ end }}
+{{- end -}}
+----
+
+.which can be used in templates
+[source, go]
+----
+{{ template "T2" . }}
+{{ template "T2" envToMap "KAFKA_" }}
 ----
 
 === Ensure
@@ -147,8 +171,9 @@ echo $?
 0
 ----
 
-
 === Path
+
+
 
 == Template Functions
 
@@ -178,6 +203,23 @@ Instructions about how to configure Remote Development: https://code.visualstudi
 [source, bash]
 ----
 go test -v ./...
+----
+
+[source,yaml]
+----
+package template
+
+import (
+	"os"
+	"testing"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestHasEnv(t *testing.T) {
+	os.Setenv("GODUB_TEST_HAS_ENV_EXISTING", "value")
+	assert.True(t, hasEnv("GODUB_TEST_HAS_ENV_EXISTING"))
+	assert.False(t, hasEnv("GODUB_TEST_HAS_ENV_SOMETHING_ELSE"))
+}
 ----
 
 === Initialize Project

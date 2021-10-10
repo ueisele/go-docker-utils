@@ -1,57 +1,87 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-
+	"fmt"
 	"github.com/spf13/cobra"
 
 	"github.com/ueisele/go-docker-utils/pkg/template"
 )
 
 var (
-	templateCmd = &cobra.Command{
+	renderCmd = &cobra.Command{
 		Use:   "template",
 		Short: "Uses Go template and environment variables to generate configuration files.",
 		Long:  "Uses Go template and environment variables to generate configuration files.",
 		SilenceUsage: true,
-		RunE:  runTemplateCmd,
+		RunE:  runRenderCmd,
 	}
-	in 			string
-	out 		string
-	missingkey  string
+	input 		[]string
+	output 		string
+	values		[]string
+	refs  		[]string
+	strict 		bool
 )
 
 func init() {
-	templateCmd.Flags().StringVarP(&in, "in", "i", "", "The template file. If not provided, it is read from stdin.")
-	templateCmd.Flags().StringVarP(&out, "out", "o", "", "The output file. If not provided, it is written from stdout.")
-	templateCmd.Flags().StringVarP(&missingkey, "missingkey", "m", "default", "Strategy for dealing with missing keys: [default|zero|error]")
+	renderCmd.Flags().StringSliceVarP(&input, "in", "i", []string{}, "The template files (glob pattern). If not provided, it is read from stdin.")
+	renderCmd.Flags().StringVarP(&output, "out", "o", "", "The output file or directory. If not provided, it is written to stdout.")
+	renderCmd.Flags().StringSliceVarP(&values, "values", "v", []string{}, "Values files (glob pattern).")
+	renderCmd.Flags().StringSliceVarP(&refs, "refs", "r", []string{}, "Reference templates (glob pattern).")
+	renderCmd.Flags().BoolVarP(&strict, "strict", "s", false, "In strict mode, rendering is aborted on missing field. By default its set to zero.")
 }
 
-func runTemplateCmd(cmd *cobra.Command, args []string) error {
-	var tplFile *os.File
-	var err error
-	if len(in) > 0 {
-		tplFile, err = os.Open(in)
+func runRenderCmd(cmd *cobra.Command, args []string) error {
+	renderer := template.NewRenderer().WithConfig(template.Config{Strict: strict})
+	
+	var sourceStream template.Source
+	if len(input) > 0 {
+		filenames, err := template.FileGlobsToFileNames(input...)
 		if err != nil {
-			return fmt.Errorf("could not open template file %s: %v", in, err)
+			return fmt.Errorf("could not parse input glob: %v", err) 
 		}
-		defer tplFile.Close()
+		if len(filenames) == 0 {
+			return fmt.Errorf("input globs matches no files: %#q", input)
+		}
+		sourceStream = template.FileInputSource(filenames...)
 	} else {
-		tplFile = os.Stdin
+		sourceStream = template.ReaderSource("stdin.gotpl", os.Stdin)
+	}
+	renderer.From(sourceStream)
+
+	if len(values) > 0 {
+		filenames, err := template.FileGlobsToFileNames(values...)
+		if err != nil {
+			return fmt.Errorf("could not parse values glob: %v", err) 
+		}
+		contextStream := template.FileInputSource(filenames...)
+		renderer.WithContext(contextStream)
 	}
 
-	var outFile *os.File
-	if len(out) > 0 {
-		outFile, err = os.Create(out)
+	if len(refs) > 0 {
+		filenames, err := template.FileGlobsToFileNames(refs...)
 		if err != nil {
-			return fmt.Errorf("could not create output file %s: %v", out, err)
+			return fmt.Errorf("could not parse refs glob: %v", err) 
 		}
-		defer outFile.Close()
-	} else {
-		outFile = os.Stdout
+		refsStream := template.FileInputSource(filenames...)
+		renderer.WithReferenceTemplates(refsStream)
 	}
 
-	dubtemplate := template.NewDubTemplateWithDefaults("missingkey=" + missingkey)
-	return dubtemplate.TemplateOsFileToOsFile(tplFile, outFile)
+	var sinkStream template.Transform
+	if output != "" {
+		info, err := os.Stat(output)
+		if err == nil && info.Mode().IsDir() {
+			sinkStream, err = template.DirOutputSink(output, ".gotpl", ".tpl")
+		} else {
+			sinkStream, err = template.FileOutputSink(output)
+		}
+		if err != nil {
+			return fmt.Errorf("could not create output sink for %s", output) 	
+		}
+	} else {
+		sinkStream = template.WriterSink(os.Stdout)
+	}
+	renderer.To(sinkStream)
+
+	return renderer.Render()
 }

@@ -5,8 +5,8 @@ RUN apk add --no-cache gcc g++ upx git \
 
 WORKDIR /workspace
 COPY . .
-RUN ./build-static.sh godub
 RUN go test -v ./...
+RUN ./build-static.sh godub
 
 FROM busybox:stable-musl
 COPY --from=builder /workspace/godub /godub

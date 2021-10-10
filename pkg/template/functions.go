@@ -1,56 +1,67 @@
 package template
 
 import (
-	"fmt"
-	"net"
 	"os"
-	"reflect"
-	"regexp"
+	"fmt"
+	"bytes"
 	"strings"
-	"text/template"
+	"regexp"
+	"reflect"
+	"net"
 	"inet.af/netaddr"
+	"text/template"
+	"github.com/Masterminds/sprig"
+	"encoding/json"
+	"gopkg.in/yaml.v3"
+	"github.com/BurntSushi/toml"
+	"github.com/magiconair/properties"
 )
 
-// TxtFuncMap returns a 'text/template'.FuncMap
-func DubTxtFuncMap() template.FuncMap {
-	return template.FuncMap(DubFuncMap())
-}
+func funcMap() template.FuncMap {
+	f := sprig.TxtFuncMap()
 
-// DubFuncMap returns a copy of the basic function map as a map[string]interface{}.
-func DubFuncMap() map[string]interface{} {
-	dfm := make(map[string]interface{}, len(dubMap))
-	for k, v := range dubMap {
-		dfm[k] = v
+	// Add some extra functionality
+	extra := template.FuncMap{
+		"heygodub": func() string { return "Hello :)" },
+
+		// Env functions
+		"hasEnv":				hasEnv,
+		"envToMap":		  		envToMap,
+		"envToProp":			envToProp,
+	
+		// Map functions
+		"excludeKeys":			excludeKeys,
+		"replaceKeyPrefix":		replaceKeyPrefix,
+		"toPropertiesKey":		toPropertiesKey,
+	
+		// String functions
+		"kvCsvToMap":			kvCsvToMap,
+	
+		// List functions
+		"filterHasPrefix":		filterHasPrefix,
+	
+		// Verify functions
+		"required":				required,
+	
+		// Network functions
+		"ipAddresses":			ipAddresses,
+		"ipAddress":			ipAddress,
+		"anyIpAddress":			anyIpAddress,
+
+		// Format functions
+		"toYAML":				toYAML,
+		"toJSON":				toJSON,
+		"toTOML":				toTOML,
+		"toProperties":			toProperties,
+
+		"fromProperties":		fromProperties,
 	}
-	return dfm
-}
 
-var dubMap = map[string]interface{}{
-	"heygodub": func() string { return "Hello :)" },
+	for k, v := range extra {
+		f[k] = v
+	}
 
-	// Env functions
-	"hasEnv":				hasEnv,
-	"envMap":		  		envMap,
-	"envToProp":			envToProp,
-
-	// Map functions
-	"filterKeyNotEqual":	filterKeyNotEqual,
-	"replaceKeyPrefix":		replaceKeyPrefix,
-	"keyToProp":			keyToProp,
-
-	// String functions
-	"kvCsvToMap":			kvCsvToMap,
-
-	// List functions
-	"filterHasPrefix":		filterHasPrefix,
-
-	// Verify functions
-	"required":				required,
-
-	// Network functions
-	"ipAddresses":			ipAddresses,
-	"ipAddress":			ipAddress,
-	"anyIpAddress":			anyIpAddress,
+	return f
 }
 
 // checks if an environment variable with the given key exists
@@ -60,7 +71,7 @@ func hasEnv(key string) bool {
 }
 
 // custom function that returns key/value for all environment variable keys matching prefix
-func envMap(prefix string) map[string]string {
+func envToMap(prefix string) map[string]string {
 	env := make(map[string]string)
 	for _, setting := range os.Environ() {
 		pair := strings.SplitN(setting, "=", 2)
@@ -105,10 +116,10 @@ func envMap(prefix string) map[string]string {
 // See:
 //   Original dub: https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
 func envToProp(env_prefix string, prop_prefix string, exclude ...interface{}) map[string]string {
-	return keyToProp(replaceKeyPrefix(env_prefix, prop_prefix, filterKeyNotEqual(exclude, envMap(env_prefix))))
+	return toPropertiesKey(replaceKeyPrefix(env_prefix, prop_prefix, excludeKeys(exclude, envToMap(env_prefix))))
 }
 
-func filterKeyNotEqual(exclude interface{}, sourceMap map[string]string) map[string]string {
+func excludeKeys(exclude interface{}, sourceMap map[string]string) map[string]string {
 	resultMap := make(map[string]string)
 	excludeStrings := toFlatListOfStrings(exclude)
 	for key, value := range sourceMap {
@@ -127,7 +138,7 @@ func replaceKeyPrefix(prefix string, replacement string, sourceMap map[string]st
 	return resultMap
 }
 
-func keyToProp(sourceMap map[string]string) map[string]string {
+func toPropertiesKey(sourceMap map[string]string) map[string]string {
 	props := make(map[string]string)
 	to_dot_pattern := regexp.MustCompile("[^_](_)[^_]")
 	for key, value := range sourceMap {
@@ -331,4 +342,52 @@ func ipAddrVersion(ip netaddr.IP) string {
 		return ipv4
 	}
 	return ipv6
+}
+
+// toYAML takes an interface, marshals it to yaml, and returns a string.
+func toYAML(v interface{}) (string, error) {
+	data, err := yaml.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(string(data), "\n"), nil
+}
+
+// toJSON takes an interface, marshals it to json, and returns a string.
+func toJSON(v interface{}) (string, error) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+// toTOML takes an interface, marshals it to toml, and returns a string.
+func toTOML(v interface{}) (string, error) {
+	b := bytes.NewBuffer(nil)
+	e := toml.NewEncoder(b)
+	err := e.Encode(v)
+	if err != nil {
+		return "", err
+	}
+	return b.String(), nil
+}
+
+// toProperties takes an interface, marshals it to properties, and returns a string.
+func toProperties(v interface{}) (string, error) {
+	props := properties.NewProperties()
+	err := props.Decode(v)
+	if err != nil {
+		return "", err
+	}
+	return props.String(), nil
+}
+
+func fromProperties(v interface{}) (map[string]string, error) {
+	props := properties.NewProperties()
+	err := props.Decode(v)
+	if err != nil {
+		return nil, err
+	}
+	return props.Map(), nil
 }
