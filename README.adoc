@@ -231,6 +231,8 @@ The following additional functions are suppored:
 
 The functions are implemented in link:pkg/template/functions.go[].
 
+**ToDo:** Detailed documentation of functions!
+
 == Development
 
 _GoDub_ provides a Visual Studio Code Remote Development in Containers set up. 
@@ -259,20 +261,22 @@ Instructions about how to configure Remote Development: https://code.visualstudi
 go test -v ./...
 ----
 
+**ToDo:** Implement tests!
+
 [source,yaml]
 ----
 package template
 
 import (
-	"os"
-	"testing"
-	"github.com/stretchr/testify/assert"
+  "os"
+  "testing"
+  "github.com/stretchr/testify/assert"
 )
 
 func TestHasEnv(t *testing.T) {
-	os.Setenv("GODUB_TEST_HAS_ENV_EXISTING", "value")
-	assert.True(t, hasEnv("GODUB_TEST_HAS_ENV_EXISTING"))
-	assert.False(t, hasEnv("GODUB_TEST_HAS_ENV_SOMETHING_ELSE"))
+  os.Setenv("GODUB_TEST_HAS_ENV_EXISTING", "value")
+  assert.True(t, hasEnv("GODUB_TEST_HAS_ENV_EXISTING"))
+  assert.False(t, hasEnv("GODUB_TEST_HAS_ENV_SOMETHING_ELSE"))
 }
 ----
 
