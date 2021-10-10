@@ -5,6 +5,4 @@ My Second Template:
 {{ template "T2" . }}
 
 My Third Template:
-{{ template "T2" envMap "KAFKA_" }}
-
-{{ template "helpers.gotpl" . }}
+{{ template "T2" envToMap "KAFKA_" }}

@@ -24,11 +24,11 @@ func NewContextBuilder() *ContextBuilder {
 
 func (cb *ContextBuilder) initTypeRegistry() {
 	cb.typeRegistry = make(map[string]func (string) error)
-	cb.typeRegistry["json"] = cb.WithJson
-	cb.typeRegistry["yml"] = cb.WithYaml
-	cb.typeRegistry["yaml"] = cb.WithYaml
-	cb.typeRegistry["toml"] = cb.WithToml
-	cb.typeRegistry["properties"] = cb.WithProperties
+	cb.typeRegistry[".json"] = cb.WithJson
+	cb.typeRegistry[".yml"] = cb.WithYaml
+	cb.typeRegistry[".yaml"] = cb.WithYaml
+	cb.typeRegistry[".toml"] = cb.WithToml
+	cb.typeRegistry[".properties"] = cb.WithProperties
 }
 
 func (cb *ContextBuilder) Build() (context map[string]interface{}, err error) {

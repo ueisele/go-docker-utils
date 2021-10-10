@@ -16,26 +16,18 @@ type Config struct {
 }
 
 type engine struct {
+	config Config
 	tpl *template.Template
 } 
 
 func NewEngine(config Config) Engine {
-	e := &engine{}
-	e.initTemplate(config)
+	e := &engine{config: config}
+	e.initTemplate()
 	return e
 }
 
-func (e *engine) initTemplate(config Config) {
+func (e *engine) initTemplate() {
 	e.tpl = template.New("gotpl")
-
-	if config.Strict {
-		e.tpl.Option("missingkey=error")
-	} else {
-		// Not that zero will attempt to add default values for types it knows,
-		// but will still emit <no value> for others. We mitigate that later.
-		e.tpl.Option("missingkey=zero")
-	}
-
 	e.tpl.Funcs(funcMap()).Funcs(template.FuncMap{"tpl": e.Render})
 }
 
@@ -64,10 +56,17 @@ func (e *engine) Render(renderable string, context map[string]interface{}) (rend
 
 func (e *engine) createTemplate(renderable string) (t *template.Template, err error) {
 	t = template.Must(e.tpl.Clone())
-	if _, err = t.Parse(renderable); err != nil {
-		return
+	
+	if e.config.Strict {
+		t.Option("missingkey=error")
+	} else {
+		// Not that zero will attempt to add default values for types it knows,
+		// but will still emit <no value> for others. We mitigate that later.
+		t.Option("missingkey=zero")
 	}
-	return
+
+	_, err = t.Parse(renderable)
+	return 
 }
 
 func (e *engine) renderTemplate(t *template.Template, context map[string]interface{}) (string, error) {
@@ -76,8 +75,12 @@ func (e *engine) renderTemplate(t *template.Template, context map[string]interfa
 		return "", err
 	}
 
-	// Work around the issue where Go will emit "<no value>" even if Options(missing=zero)
-	// is set. Since missing=error will never get here, we do not need to handle
-	// the Strict case.
-	return strings.ReplaceAll(buf.String(), "<no value>", ""), nil
+	if e.config.Strict {
+		return buf.String(), nil
+	} else {
+		// Work around the issue where Go will emit "<no value>" even if Options(missing=zero)
+		// is set. Since missing=error will never get here, we do not need to handle
+		// the Strict case.
+		return strings.ReplaceAll(buf.String(), "<no value>", ""), nil
+	}
 }
