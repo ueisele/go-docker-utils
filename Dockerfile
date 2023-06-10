@@ -1,4 +1,4 @@
-FROM golang:1.17.2-alpine as builder
+FROM golang:1.20.5-alpine as builder
 
 RUN apk add --no-cache gcc g++ upx git \
     && rm -rf /var/cache/apk/*
@@ -6,7 +6,7 @@ RUN apk add --no-cache gcc g++ upx git \
 WORKDIR /workspace
 COPY . .
 RUN go test -v ./...
-RUN ./build-static.sh godub
+RUN ./build-static.sh
 
 FROM busybox:stable-musl
 COPY --from=builder /workspace/godub /godub

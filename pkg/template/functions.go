@@ -1,20 +1,20 @@
 package template
 
 import (
-	"os"
-	"fmt"
 	"bytes"
-	"strings"
-	"regexp"
-	"reflect"
+	"fmt"
 	"net"
-	"inet.af/netaddr"
-	"text/template"
-	"github.com/Masterminds/sprig"
+	"os"
+	"reflect"
+	"regexp"
+	"strings"
+	//"inet.af/netaddr"
 	"encoding/json"
-	"gopkg.in/yaml.v3"
 	"github.com/BurntSushi/toml"
+	"github.com/Masterminds/sprig"
 	"github.com/magiconair/properties"
+	"gopkg.in/yaml.v3"
+	"text/template"
 )
 
 func funcMap() template.FuncMap {
@@ -25,36 +25,36 @@ func funcMap() template.FuncMap {
 		"heygodub": func() string { return "Hello :)" },
 
 		// Env functions
-		"hasEnv":				hasEnv,
-		"envToMap":		  		envToMap,
-		"envToProp":			envToProp,
-	
+		"hasEnv":    hasEnv,
+		"envToMap":  envToMap,
+		"envToProp": envToProp,
+
 		// Map functions
-		"excludeKeys":			excludeKeys,
-		"replaceKeyPrefix":		replaceKeyPrefix,
-		"toPropertiesKey":		toPropertiesKey,
-	
+		"excludeKeys":      excludeKeys,
+		"replaceKeyPrefix": replaceKeyPrefix,
+		"toPropertiesKey":  toPropertiesKey,
+
 		// String functions
-		"kvCsvToMap":			kvCsvToMap,
-	
+		"kvCsvToMap": kvCsvToMap,
+
 		// List functions
-		"filterHasPrefix":		filterHasPrefix,
-	
+		"filterHasPrefix": filterHasPrefix,
+
 		// Verify functions
-		"required":				required,
-	
+		"required": required,
+
 		// Network functions
-		"ipAddresses":			ipAddresses,
-		"ipAddress":			ipAddress,
-		"anyIpAddress":			anyIpAddress,
+		"ipAddresses":  ipAddresses,
+		"ipAddress":    ipAddress,
+		"anyIpAddress": anyIpAddress,
 
 		// Format functions
-		"toYAML":				toYAML,
-		"toJSON":				toJSON,
-		"toTOML":				toTOML,
-		"toProperties":			toProperties,
+		"toYAML":       toYAML,
+		"toJSON":       toJSON,
+		"toTOML":       toTOML,
+		"toProperties": toProperties,
 
-		"fromProperties":		fromProperties,
+		"fromProperties": fromProperties,
 	}
 
 	for k, v := range extra {
@@ -89,32 +89,39 @@ func envToMap(prefix string) map[string]string {
 // and three underscores '___' are replaced with a dash '-'.
 //
 // For example: if these are set in the environment
-//   CONTROL_CENTER_STREAMS_NUM_STREAM_THREADS=4
-//   CONTROL_CENTER_STREAMS_SECURITY_PROTOCOL=SASL_SSL
-//   CONTROL_CENTER_STREAMS_WITH__UNDERSCORE=foo
-//   CONTROL_CENTER_STREAMS_WITH___DASH=bar
-//   CONTROL_CENTER_STREAMS_SASL_KERBEROS_SERVICE_NAME=kafka
+//
+//	CONTROL_CENTER_STREAMS_NUM_STREAM_THREADS=4
+//	CONTROL_CENTER_STREAMS_SECURITY_PROTOCOL=SASL_SSL
+//	CONTROL_CENTER_STREAMS_WITH__UNDERSCORE=foo
+//	CONTROL_CENTER_STREAMS_WITH___DASH=bar
+//	CONTROL_CENTER_STREAMS_SASL_KERBEROS_SERVICE_NAME=kafka
 //
 // then
-//   env_to_props('CONTROL_CENTER_STREAMS_', 'confluent.controlcenter.streams.', exclude=['CONTROL_CENTER_STREAMS_NUM_STREAM_THREADS'])
+//
+//	env_to_props('CONTROL_CENTER_STREAMS_', 'confluent.controlcenter.streams.', exclude=['CONTROL_CENTER_STREAMS_NUM_STREAM_THREADS'])
+//
 // will produce
-// 	{
-// 		'confluent.controlcenter.streams.security.protocol': 'SASL_SSL',
-// 		'confluent.controlcenter.streams.with_underscore': 'foo',
-// 		'confluent.controlcenter.streams.with_dash': 'bar',
-// 		'confluent.controlcenter.streams.sasl.kerberos.service.name': 'kafka'
-// 	}
+//
+//	{
+//		'confluent.controlcenter.streams.security.protocol': 'SASL_SSL',
+//		'confluent.controlcenter.streams.with_underscore': 'foo',
+//		'confluent.controlcenter.streams.with_dash': 'bar',
+//		'confluent.controlcenter.streams.sasl.kerberos.service.name': 'kafka'
+//	}
 //
 // Args:
-//   env_prefix: prefix of environment variables to include. (e.g. CONTROL_CENTER_STREAMS_)
-//   prop_prefix: prefix of the resulting properties (e.g. confluent.controlcenter.streams.)
-//   exclude: list of environment variables to exclude
+//
+//	env_prefix: prefix of environment variables to include. (e.g. CONTROL_CENTER_STREAMS_)
+//	prop_prefix: prefix of the resulting properties (e.g. confluent.controlcenter.streams.)
+//	exclude: list of environment variables to exclude
 //
 // Returns:
-//   Map of matching properties.
+//
+//	Map of matching properties.
 //
 // See:
-//   Original dub: https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
+//
+//	Original dub: https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
 func envToProp(env_prefix string, prop_prefix string, exclude ...interface{}) map[string]string {
 	return toPropertiesKey(replaceKeyPrefix(env_prefix, prop_prefix, excludeKeys(exclude, envToMap(env_prefix))))
 }
@@ -133,7 +140,7 @@ func excludeKeys(exclude interface{}, sourceMap map[string]string) map[string]st
 func replaceKeyPrefix(prefix string, replacement string, sourceMap map[string]string) map[string]string {
 	resultMap := make(map[string]string)
 	for key, value := range sourceMap {
-		resultMap[replacement + strings.TrimPrefix(key, prefix)] = value
+		resultMap[replacement+strings.TrimPrefix(key, prefix)] = value
 	}
 	return resultMap
 }
@@ -144,9 +151,7 @@ func toPropertiesKey(sourceMap map[string]string) map[string]string {
 	for key, value := range sourceMap {
 		raw_name := strings.ToLower(key)
 		var prop_dot string = raw_name
-		for matches := to_dot_pattern.FindAllString(prop_dot, -1); 
-			len(matches) > 0; 
-			matches = to_dot_pattern.FindAllString(prop_dot, -1) {
+		for matches := to_dot_pattern.FindAllString(prop_dot, -1); len(matches) > 0; matches = to_dot_pattern.FindAllString(prop_dot, -1) {
 			for _, frac := range matches {
 				prop_dot = strings.Replace(prop_dot, frac, strings.ReplaceAll(frac, "_", "."), 1)
 			}
@@ -161,16 +166,20 @@ func toPropertiesKey(sourceMap map[string]string) map[string]string {
 // Parses a list of key/value pairs separated by commas.
 //
 // For example for "foo.bar=DEBUG,baz.bam=TRACE"
-//   the this function will return {"foo.bar: "DEBUG", "baz.bam": "TRACE"}
+//
+//	the this function will return {"foo.bar: "DEBUG", "baz.bam": "TRACE"}
 //
 // Args:
-//   kvList: String containing the comma separated list of key/value pairs.
+//
+//	kvList: String containing the comma separated list of key/value pairs.
 //
 // Returns:
-//   Map of key/value pairs.
+//
+//	Map of key/value pairs.
 //
 // See:
-//   Original dub: https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
+//
+//	Original dub: https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
 func kvCsvToMap(kvList string) map[string]interface{} {
 	props := make(map[string]interface{})
 	for _, override := range strings.Split(kvList, ",") {
@@ -252,7 +261,7 @@ func toFlatListOfStrings(args ...interface{}) []string {
 				stringList = append(stringList, t.String())
 			default:
 				stringList = append(stringList, fmt.Sprintf("%v", t))
-		  }
+			}
 		}
 	}
 	return stringList
@@ -279,22 +288,22 @@ const (
 	ipv6 string = "ipv6"
 )
 
-func anyIpAddress() (*netaddr.IP, error) {
+func anyIpAddress() (*net.IP, error) {
 	return ipAddress(prefer, ipv4, 0)
 }
 
-func ipAddress(preference string, ipVersion string, iface int) (*netaddr.IP, error) {
+func ipAddress(preference string, ipVersion string, iface int) (*net.IP, error) {
 	addresses, err := ipAddresses(preference, ipVersion)
 	if err != nil {
 		return nil, err
 	}
-	if (len(addresses) <= iface) {
-		return nil, fmt.Errorf("less than %d interfaces are available with a global unicast address matching '%s %s'", iface + 1, preference, ipVersion)
+	if len(addresses) <= iface {
+		return nil, fmt.Errorf("less than %d interfaces are available with a global unicast address matching '%s %s'", iface+1, preference, ipVersion)
 	}
 	return addresses[iface], nil
 }
 
-func ipAddresses(preference string, ipVersion string) ([]*netaddr.IP, error) {
+func ipAddresses(preference string, ipVersion string) ([]*net.IP, error) {
 	if preference != require && preference != prefer {
 		return nil, fmt.Errorf("preference argument must be one of [%s, %s], but was: %s", require, prefer, preference)
 	}
@@ -302,32 +311,35 @@ func ipAddresses(preference string, ipVersion string) ([]*netaddr.IP, error) {
 		return nil, fmt.Errorf("IP version argument must be one of [%s, %s], but was: %s", ipv4, ipv6, ipVersion)
 	}
 
-	addresses := make([]*netaddr.IP, 0)
+	addresses := make([]*net.IP, 0)
 
 	ifaces, err := net.Interfaces()
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	for _, iface := range ifaces {
 		addrs, err := iface.Addrs()
-		if err != nil { return nil, err }
-		
-		var foundIfaceAddr *netaddr.IP
+		if err != nil {
+			return nil, err
+		}
+
+		var foundIfaceAddr *net.IP
 		for _, addr := range addrs {
 			var ip net.IP
 			switch v := addr.(type) {
 			case *net.IPNet:
-					ip = v.IP
+				ip = v.IP
 			case *net.IPAddr:
-					ip = v.IP
+				ip = v.IP
 			}
 			if ip.IsGlobalUnicast() {
-				nIp, _ := netaddr.FromStdIP(ip)
 				if foundIfaceAddr == nil || ipAddrVersion(*foundIfaceAddr) != ipVersion {
-					foundIfaceAddr = &nIp
+					foundIfaceAddr = &ip
 				}
 				if ipAddrVersion(*foundIfaceAddr) == ipVersion {
 					break
-				}		
+				}
 			}
 		}
 		if foundIfaceAddr != nil && (preference == prefer || ipAddrVersion(*foundIfaceAddr) == ipVersion) {
@@ -337,8 +349,8 @@ func ipAddresses(preference string, ipVersion string) ([]*netaddr.IP, error) {
 	return addresses, nil
 }
 
-func ipAddrVersion(ip netaddr.IP) string {
-	if ip.Is4() {
+func ipAddrVersion(ip net.IP) string {
+	if ip.To4() != nil {
 		return ipv4
 	}
 	return ipv6

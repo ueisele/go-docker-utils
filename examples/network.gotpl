@@ -1,0 +1,5 @@
+any={{ anyIpAddress }}
+ipv4_addresses={{ ipAddresses "require" "ipv4" }}
+ipv6_addresses={{ ipAddresses "require" "ipv6" }}
+ipv4_address={{ ipAddress "prefer" "ipv4" 0 }}
+ipv6_address={{ ipAddress "prefer" "ipv6" 0 }}

@@ -6,11 +6,11 @@
 = Go Docker Utility Belt (GoDub)
 
 The `Go Docker Utility Belt`, or short `GoDub`, is a tool to simplify and support the configuration of applications on Docker images.
-One major feature is the templating support which allows it to render link:https://pkg.go.dev/text/template[Go templates] on the command line usinge environment variables.
+One major feature is the templating support which allows it to render link:https://pkg.go.dev/text/template[Go templates] on the command line using environment variables.
 
-It is directly inspired by the original link:https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py[Docker Utility Belt] written by Confluent. The original is a Python tool, which for example uses link:https://jinja.palletsprojects.com/en/latest/[Jinja2] for redering templates.
+It is directly inspired by the original link:https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py[Docker Utility Belt] written by Confluent. The original is a Python tool, which for example uses link:https://jinja.palletsprojects.com/en/latest/[Jinja2] for rendering templates.
 
-In addition it is also inspred by link:https://github.com/subfuzion/envtpl[envtpl] tool, which is written in Go. The majot difference between _envtpl_ and _GoDub_ is, that _GoDub_ includes additional templating functions, for example to transform environment variable keys to a property format. 
+In addition, it is also inspired by link:https://github.com/subfuzion/envtpl[envtpl] tool, which is written in Go. The major difference between _envtpl_ and _GoDub_ is, that _GoDub_ includes additional templating functions, for example to transform environment variable keys to a property format.
 
 The main reason to develip _GoDob_ was, to provide templating support for configuration files which need to be part of a Docker image, without the need to install Python.
 
@@ -244,7 +244,13 @@ Instructions about how to configure Remote Development: https://code.visualstudi
 
 [source, bash]
 ----
-./build.sh godub
+./build.sh
+----
+
+You can also cross-compile _GoDub_ with the following command:
+[source, bash]
+----
+GOOS=linux GOARCH=arm64 ./build.sh
 ----
 
 === Run
@@ -282,7 +288,7 @@ func TestHasEnv(t *testing.T) {
 
 === Initialize Project
 
-Typically this is not required, because go.mod is added to Git. However, to re-create it run_
+Typically, this is not required, because go.mod is added to Git. However, to re-create it run_
 
 [source, bash]
 ----

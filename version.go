@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -6,33 +5,17 @@ import (
 	"runtime"
 )
 
-const (
-	AppName         = "godub"
-	AppVersionMajor = 0
-	AppVersionMinor = 1
-	AppVersionPatch = 0
-)
+// app version set by build flag:
+//
+//	go build -ldflags "-X cmd.AppVersion=$(git describe --tags --dirty --abbrev=7)"
+var AppVersion string = "0.0.0"
 
-// version metadata set by build flag:
-//     go build -ldflags "-X cmd.AppVersionMetadata=$(date -u +%s)"
-var AppVersionMetadata string
-// version build set by build flag:
-//	   go build -ldflags "-X main.AppVersionBuild=$(git rev-parse --short=7 HEAD)"
-var AppVersionBuild string
+// app commit set by build flag:
+//
+//	go build -ldflags "-X main.AppCommit=$(git rev-parse --short=7 HEAD)"
+var AppCommit string = "unknown"
 
 func Version() string {
-	// major.minor.patch[-prerelease+buildmetadata]
-	// optional version suffix format is "-(pre-release-version)+(build-metadata)"
-	suffix := ""
-
-	if AppVersionBuild != "" {
-		suffix += "-" + AppVersionBuild
-	}
-
-	if AppVersionMetadata != "" {
-		suffix += "-" + AppVersionMetadata
-	}
-
-	return fmt.Sprintf("%s %d.%d.%d%s (Go runtime %s).\nCopyright (c) 2021, Uwe Eisele.",
-		AppName, AppVersionMajor, AppVersionMinor, AppVersionPatch, suffix, runtime.Version())
+	return fmt.Sprintf("%s (Commit %s) (%s %s/%s).\nCopyright (c) 2023, Uwe Eisele.",
+		AppVersion, AppCommit, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 }
