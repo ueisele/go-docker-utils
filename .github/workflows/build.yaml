@@ -22,8 +22,8 @@ jobs:
     - run: go version
 
     - name: Build
-      run: go build
+      run: ./build.sh
     - name: Test
       run: go test -v ./...
     - name: Version
-      run: ./go-docker-utils --version
+      run: ./godub --version
