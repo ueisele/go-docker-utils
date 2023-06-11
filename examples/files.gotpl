@@ -1,0 +1,5 @@
+{{- range $path, $content := .Files }}
+{{- if (eq (ext $path) ".json") }}
+{{ $content | fromJSON | toYAML }}
+{{- end }}
+{{- end }}

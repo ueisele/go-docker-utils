@@ -2,18 +2,18 @@ package template
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"github.com/BurntSushi/toml"
+	"github.com/Masterminds/sprig"
+	"github.com/magiconair/properties"
+	"github.com/mitchellh/mapstructure"
+	"gopkg.in/yaml.v3"
 	"net"
 	"os"
 	"reflect"
 	"regexp"
 	"strings"
-	//"inet.af/netaddr"
-	"encoding/json"
-	"github.com/BurntSushi/toml"
-	"github.com/Masterminds/sprig"
-	"github.com/magiconair/properties"
-	"gopkg.in/yaml.v3"
 	"text/template"
 )
 
@@ -26,6 +26,7 @@ func funcMap() template.FuncMap {
 
 		// Env functions
 		"hasEnv":    hasEnv,
+		"fromEnv":   fromEnv,
 		"envToMap":  envToMap,
 		"envToProp": envToProp,
 
@@ -49,11 +50,14 @@ func funcMap() template.FuncMap {
 		"anyIpAddress": anyIpAddress,
 
 		// Format functions
-		"toYAML":       toYAML,
-		"toJSON":       toJSON,
-		"toTOML":       toTOML,
-		"toProperties": toProperties,
-
+		"toYAML":         toYAML,
+		"fromYAML":       fromYAML,
+		"toJSON":         toJSON,
+		"toJSONPretty":   toJSONPretty,
+		"fromJSON":       fromJSON,
+		"toTOML":         toTOML,
+		"fromTOML":       fromTOML,
+		"toProperties":   toProperties,
 		"fromProperties": fromProperties,
 	}
 
@@ -70,9 +74,18 @@ func hasEnv(key string) bool {
 	return has
 }
 
+func fromEnv() map[string]interface{} {
+	env := make(map[string]interface{})
+	for _, setting := range os.Environ() {
+		pair := strings.SplitN(setting, "=", 2)
+		env[pair[0]] = pair[1]
+	}
+	return env
+}
+
 // custom function that returns key/value for all environment variable keys matching prefix
-func envToMap(prefix string) map[string]string {
-	env := make(map[string]string)
+func envToMap(prefix string) map[string]interface{} {
+	env := make(map[string]interface{})
 	for _, setting := range os.Environ() {
 		pair := strings.SplitN(setting, "=", 2)
 		if strings.HasPrefix(pair[0], prefix) {
@@ -122,45 +135,89 @@ func envToMap(prefix string) map[string]string {
 // See:
 //
 //	Original dub: https://github.com/confluentinc/confluent-docker-utils/blob/master/confluent/docker_utils/dub.py
-func envToProp(env_prefix string, prop_prefix string, exclude ...interface{}) map[string]string {
+func envToProp(env_prefix string, prop_prefix string, exclude ...interface{}) map[string]interface{} {
 	return toPropertiesKey(replaceKeyPrefix(env_prefix, prop_prefix, excludeKeys(exclude, envToMap(env_prefix))))
 }
 
-func excludeKeys(exclude interface{}, sourceMap map[string]string) map[string]string {
-	resultMap := make(map[string]string)
-	excludeStrings := toFlatListOfStrings(exclude)
-	for key, value := range sourceMap {
-		if !contains(excludeStrings, key) {
-			resultMap[key] = value
-		}
-	}
-	return resultMap
-}
-
-func replaceKeyPrefix(prefix string, replacement string, sourceMap map[string]string) map[string]string {
-	resultMap := make(map[string]string)
-	for key, value := range sourceMap {
-		resultMap[replacement+strings.TrimPrefix(key, prefix)] = value
-	}
-	return resultMap
-}
-
-func toPropertiesKey(sourceMap map[string]string) map[string]string {
-	props := make(map[string]string)
-	to_dot_pattern := regexp.MustCompile("[^_](_)[^_]")
-	for key, value := range sourceMap {
-		raw_name := strings.ToLower(key)
-		var prop_dot string = raw_name
-		for matches := to_dot_pattern.FindAllString(prop_dot, -1); len(matches) > 0; matches = to_dot_pattern.FindAllString(prop_dot, -1) {
-			for _, frac := range matches {
-				prop_dot = strings.Replace(prop_dot, frac, strings.ReplaceAll(frac, "_", "."), 1)
+func excludeKeys(exclude interface{}, sourceMap interface{}) map[string]interface{} {
+	sourceMapVal := reflect.ValueOf(sourceMap)
+	switch sourceMapVal.Kind() {
+	case reflect.Map:
+		resultMap := make(map[string]interface{})
+		excludeStrings := toFlatListOfStrings(exclude)
+		iter := sourceMapVal.MapRange()
+		for iter.Next() {
+			key := strval(iter.Key().Interface())
+			value := iter.Value().Interface()
+			if !contains(excludeStrings, key) {
+				resultMap[key] = value
 			}
 		}
-		prop_dash := strings.Join(strings.Split(prop_dot, "___"), "-")
-		prop_underscore := strings.Join(strings.Split(prop_dash, "__"), "_")
-		props[prop_underscore] = value
+		return resultMap
+	default:
+		panic(fmt.Errorf("must be a map but was %T", sourceMap))
 	}
-	return props
+}
+
+func strval(v interface{}) string {
+	switch t := v.(type) {
+	case nil:
+		return ""
+	case string:
+		return t
+	case []byte:
+		return string(t)
+	case error:
+		return t.Error()
+	case fmt.Stringer:
+		return t.String()
+	default:
+		return fmt.Sprint(t)
+	}
+}
+
+func replaceKeyPrefix(prefix string, replacement string, sourceMap interface{}) map[string]interface{} {
+	sourceMapVal := reflect.ValueOf(sourceMap)
+	switch sourceMapVal.Kind() {
+	case reflect.Map:
+		resultMap := make(map[string]interface{})
+		iter := sourceMapVal.MapRange()
+		for iter.Next() {
+			key := strval(iter.Key().Interface())
+			value := iter.Value().Interface()
+			resultMap[replacement+strings.TrimPrefix(key, prefix)] = value
+		}
+		return resultMap
+	default:
+		panic(fmt.Errorf("must be a map but was %T", sourceMap))
+	}
+}
+
+func toPropertiesKey(sourceMap interface{}) map[string]interface{} {
+	sourceMapVal := reflect.ValueOf(sourceMap)
+	switch sourceMapVal.Kind() {
+	case reflect.Map:
+		props := make(map[string]interface{})
+		to_dot_pattern := regexp.MustCompile("[^_](_)[^_]")
+		iter := sourceMapVal.MapRange()
+		for iter.Next() {
+			key := strval(iter.Key().Interface())
+			value := iter.Value().Interface()
+			raw_name := strings.ToLower(key)
+			var prop_dot string = raw_name
+			for matches := to_dot_pattern.FindAllString(prop_dot, -1); len(matches) > 0; matches = to_dot_pattern.FindAllString(prop_dot, -1) {
+				for _, frac := range matches {
+					prop_dot = strings.Replace(prop_dot, frac, strings.ReplaceAll(frac, "_", "."), 1)
+				}
+			}
+			prop_dash := strings.Join(strings.Split(prop_dot, "___"), "-")
+			prop_underscore := strings.Join(strings.Split(prop_dash, "__"), "_")
+			props[prop_underscore] = value
+		}
+		return props
+	default:
+		panic(fmt.Errorf("must be a map but was %T", sourceMap))
+	}
 }
 
 // Parses a list of key/value pairs separated by commas.
@@ -226,10 +283,20 @@ func filterHasPrefix(prefix string, list interface{}) (interface{}, error) {
 				return t, nil
 			}
 			return nil, nil
+		case []byte:
+			if strings.HasPrefix(string(t), prefix) {
+				return t, nil
+			}
+			return nil, nil
+		case error:
+			if strings.HasPrefix(t.Error(), prefix) {
+				return t, nil
+			}
+			return nil, nil
 		case nil:
 			return nil, nil
 		default:
-			return nil, fmt.Errorf("should be type of slice, array, string or fmt.Stringer but %s", tp)
+			return nil, fmt.Errorf("should be type of slice, array, string, fmt.Stringer, []byte or error, but %s", tp)
 		}
 	}
 }
@@ -245,7 +312,7 @@ func contains(s []string, str string) bool {
 }
 
 func toFlatListOfStrings(args ...interface{}) []string {
-	stringList := make([]string, 00)
+	stringList := make([]string, 0)
 	for _, arg := range args {
 		switch reflect.TypeOf(arg).Kind() {
 		case reflect.Slice, reflect.Array:
@@ -255,8 +322,14 @@ func toFlatListOfStrings(args ...interface{}) []string {
 			}
 		default:
 			switch t := arg.(type) {
+			case nil:
+				break
 			case string:
 				stringList = append(stringList, t)
+			case []byte:
+				stringList = append(stringList, string(t))
+			case error:
+				stringList = append(stringList, t.Error())
 			case fmt.Stringer:
 				stringList = append(stringList, t.String())
 			default:
@@ -365,6 +438,15 @@ func toYAML(v interface{}) (string, error) {
 	return strings.TrimSuffix(string(data), "\n"), nil
 }
 
+func fromYAML(text string) (interface{}, error) {
+	var out interface{}
+	err := yaml.Unmarshal([]byte(text), &out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // toJSON takes an interface, marshals it to json, and returns a string.
 func toJSON(v interface{}) (string, error) {
 	data, err := json.Marshal(v)
@@ -372,6 +454,23 @@ func toJSON(v interface{}) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+func toJSONPretty(indent string, v interface{}) (string, error) {
+	data, err := json.MarshalIndent(v, "", indent)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func fromJSON(text string) (interface{}, error) {
+	var out interface{}
+	err := json.Unmarshal([]byte(text), &out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // toTOML takes an interface, marshals it to toml, and returns a string.
@@ -385,21 +484,159 @@ func toTOML(v interface{}) (string, error) {
 	return b.String(), nil
 }
 
-// toProperties takes an interface, marshals it to properties, and returns a string.
-func toProperties(v interface{}) (string, error) {
-	props := properties.NewProperties()
-	err := props.Decode(v)
-	if err != nil {
-		return "", err
-	}
-	return props.String(), nil
-}
-
-func fromProperties(v interface{}) (map[string]string, error) {
-	props := properties.NewProperties()
-	err := props.Decode(v)
+func fromTOML(text string) (interface{}, error) {
+	var out interface{}
+	_, err := toml.Decode(text, &out)
 	if err != nil {
 		return nil, err
 	}
-	return props.Map(), nil
+	return out, nil
+}
+
+// toProperties takes an interface, marshals it to properties, and returns a string.
+func toProperties(v interface{}) (string, error) {
+	ofStrings, err := toPropertiesStringMap(v)
+	if err != nil {
+		return "", err
+	}
+	props := properties.LoadMap(ofStrings)
+	return props.String(), nil
+}
+
+func fromProperties(text string) (map[string]interface{}, error) {
+	propsMap := make(map[string]interface{})
+	props, err := properties.LoadString(text)
+	for key, value := range props.Map() {
+		propsMap[key] = value
+	}
+	if err != nil {
+		return nil, err
+	}
+	return propsMap, nil
+}
+
+func toPropertiesStringMap(v interface{}) (map[string]string, error) {
+	switch t := v.(type) {
+	case nil:
+		return map[string]string{}, nil
+	case map[string]string:
+		return t, nil
+	default:
+		val := reflect.ValueOf(v)
+		switch val.Kind() {
+		case reflect.Map:
+			stringMap := make(map[string]string)
+			iter := val.MapRange()
+			for iter.Next() {
+				key := iter.Key().Interface()
+				value := iter.Value().Interface()
+				stringKey, err := toPropertiesString(key)
+				if err != nil {
+					return nil, err
+				}
+				stringValue, err := toPropertiesString(value)
+				if err != nil {
+					return nil, err
+				}
+				stringMap[stringKey] = stringValue
+			}
+			return stringMap, nil
+		case reflect.Array, reflect.Slice:
+			stringMap := make(map[string]string)
+			l := val.Len()
+			for i := 0; i < l; i++ {
+				value := val.Index(i).Interface()
+				subMap, err := toPropertiesStringMap(value)
+				if err != nil {
+					return nil, err
+				}
+				for subKey, subValue := range subMap {
+					stringMap[subKey] = subValue
+				}
+			}
+			return stringMap, nil
+		}
+		if isStruct(t) {
+			m, err := structToMap(t)
+			if err != nil {
+				return nil, err
+			}
+			return toPropertiesStringMap(m)
+		}
+		stringKey, err := toPropertiesString(t)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{stringKey: ""}, nil
+	}
+}
+
+func toPropertiesString(v interface{}) (string, error) {
+	switch t := v.(type) {
+	case nil:
+		return "", nil
+	case string:
+		return t, nil
+	case []byte:
+		return string(t), nil
+	case error:
+		return t.Error(), nil
+	case fmt.Stringer:
+		return t.String(), nil
+	default:
+		val := reflect.ValueOf(v)
+		switch val.Kind() {
+		case reflect.Map:
+			stringList := make([]string, 0)
+			iter := val.MapRange()
+			for iter.Next() {
+				key := iter.Key().Interface()
+				value := iter.Value().Interface()
+				stringKey, err := toPropertiesString(key)
+				if err != nil {
+					return "", err
+				}
+				stringValue, err := toPropertiesString(value)
+				if err != nil {
+					return "", err
+				}
+				stringList = append(stringList, fmt.Sprintf("%s=%s", stringKey, stringValue))
+			}
+			return strings.Join(stringList, ","), nil
+		case reflect.Array, reflect.Slice:
+			l := val.Len()
+			stringList := make([]string, 0)
+			for i := 0; i < l; i++ {
+				value := val.Index(i).Interface()
+				subString, err := toPropertiesString(value)
+				if err != nil {
+					return "", err
+				}
+				stringList = append(stringList, subString)
+			}
+			return strings.Join(stringList, ","), nil
+		}
+		if isStruct(t) {
+			m, err := structToMap(t)
+			if err != nil {
+				return "", err
+			}
+			return toPropertiesString(m)
+		}
+		return fmt.Sprint(t), nil
+	}
+}
+
+func isStruct(v interface{}) bool {
+	return reflect.ValueOf(v).Kind() == reflect.Ptr &&
+		reflect.ValueOf(v).Elem().Kind() == reflect.Struct
+}
+
+func structToMap(v interface{}) (map[string]interface{}, error) {
+	if !isStruct(v) {
+		return nil, fmt.Errorf("%T is not a ptr to a struct", v)
+	}
+	out := make(map[string]interface{})
+	err := mapstructure.Decode(v, &out)
+	return out, err
 }

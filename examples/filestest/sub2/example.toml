@@ -1,0 +1,12 @@
+# this is a sample file
+key="value"
+test_key="value"
+956="value"
+key-1="value"
+ key = "value" #keys with spaces are allowed
+"key" = "value" # quoted keys are valid
+dev.db.url="localhost" # keys contains dotted symbol are allowed for grouping
+
+[group]
+  subkey = "somevalue"
+  anotherkey = 23

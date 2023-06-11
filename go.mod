@@ -5,8 +5,10 @@ go 1.20
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/Masterminds/sprig v2.22.0+incompatible
+	github.com/gobwas/glob v0.2.3
 	github.com/imdario/mergo v0.3.16
 	github.com/magiconair/properties v1.8.7
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/spf13/cobra v1.7.0
 	golang.org/x/sys v0.8.0
 	gopkg.in/yaml.v3 v3.0.1

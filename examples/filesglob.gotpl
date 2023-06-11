@@ -1,0 +1,4 @@
+{{- range $path, $content := .Files.Glob "**/*.json" }}
+file: {{ $path }}
+{{ $content | fromJSON | toYAML }}
+{{- end }}

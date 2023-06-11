@@ -1,10 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .deployment.name }}
+  name: {{ .Values.deployment.name }}
   labels:
     app: nginx
     content: {{ .content }}
+    env: {{ .Env.PATH }}
 spec:
   replicas: 3
   selector:

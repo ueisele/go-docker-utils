@@ -43,8 +43,9 @@ Flags:
   -i, --in strings       The template files (glob pattern). If not provided, it is read from stdin.
   -o, --out string       The output file or directory. If not provided, it is written to stdout.
   -r, --refs strings     Reference templates (glob pattern).
-  -v, --values strings   Values files (glob pattern).
-  -s, --strict           In strict mode, rendering is aborted on missing field. By default its set to zero.
+  -v, --values strings   Values files (glob pattern). Can be used with '.Values.' prefix.
+  -f, --files strings    Available files inside templates (directories). It should be noted that all files are immediately loaded into memory. Can be used with '.Files.' prefix.
+  -s, --strict           In strict mode, rendering is aborted on missing field.
 ----
 
 * If `--in` is not provided, `GoDub` reads from `stdin`
@@ -56,7 +57,7 @@ Flags:
 [source, bash]
 ----
 export GREET="Hey :)"
-echo "{{ .GREET }}" | ./godub template
+echo "{{ .Env.GREET }}" | ./godub template
 ----
 
 .\... and outputs `Hey :)` to `stdout`.
@@ -113,6 +114,43 @@ The reason why the environment variable `KAFKA_LOG4J_LOGGERS` is not added is th
 ----
 {{ template "T2" . }}
 {{ template "T2" envToMap "KAFKA_" }}
+----
+
+.You can also load additional value files in formats `yaml`, `json`, `toml` and `properties`
+[source, bash]
+----
+./godub template -i examples/deployment.yaml.gotpl --values examples/values.yaml
+----
+
+.examples/values.yaml
+[source, yaml]
+----
+deployment:
+  name: templated-name-from-yaml
+----
+
+.examples/deployment.yaml.gotpl
+[source, yaml]
+----
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deployment.name }}
+----
+
+.It is possible to use files in templates
+[source, bash]
+----
+./godub template -i examples/filesglob.gotpl -f examples/filestest
+----
+
+.The usage is basically identical to Helm: https://helm.sh/docs/chart_template_guide/accessing_files/
+[source, go]
+----
+{{- range $path, $content := .Files.Glob "**/*.json" }}
+file: {{ $path }}
+{{ $content | fromJSON | toYAML }}
+{{- end }}
 ----
 
 === Ensure
@@ -196,7 +234,7 @@ Flags:
 
 === Sprig
 
-The Sprig library is included and therefore all Sprig functions are suppored (see https://masterminds.github.io/sprig/).
+The Sprig library is included and therefore all Sprig functions are supported (see https://masterminds.github.io/sprig/).
 
 === Custom
 
@@ -206,6 +244,7 @@ The following additional functions are suppored:
 ** heygodub
 * Env functions
 ** hasEnv
+** fromEnv
 ** envToMap
 ** envToProp
 * Map functions
@@ -224,8 +263,12 @@ The following additional functions are suppored:
 ** anyIpAddress
 * Format functions
 ** toYAML
+** fromYAML
 ** toJSON
+** toJSONPretty
+** fromJSON
 ** toTOML
+** fromTOML
 ** toProperties
 ** fromProperties
 
@@ -269,7 +312,8 @@ go test -v ./...
 
 **ToDo:** Implement tests!
 
-[source,yaml]
+.functions_test.go
+[source, go]
 ----
 package template
 
