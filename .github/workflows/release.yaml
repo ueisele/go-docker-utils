@@ -38,7 +38,6 @@ jobs:
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
-          repo_token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
           file: godub
           asset_name: godub-${{ github.ref }}-${{ matrix.goos }}-${{ matrix.goarch }}
           tag: ${{ github.ref }}
