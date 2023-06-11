@@ -1,8 +1,9 @@
 name: Release
 
-on: 
-  release:
-    types: [created]
+on:
+  push:
+    tags:
+      - '*'
 
 jobs:
   releases-matrix:
@@ -14,14 +15,31 @@ jobs:
         goarch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v3
-      - uses: wangyoucao577/go-release-action@v1
         with:
-          github_token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
-          goos: ${{ matrix.goos }}
-          goarch: ${{ matrix.goarch }}
-          goversion: 1.20
-          binary_name: godub
-          executable_compression: upx -6
-          ldflags: -s -w -linkmode external -extldflags -static
-          md5sum: false
-          sha256sum: true
+          fetch-depth: '0'
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: 'go.mod'
+          check-latest: true
+      - run: go version
+
+      - name: Install qemu dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static
+
+      - name: Build
+        run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} ./build.sh
+      - name: Test
+        run: go test -v ./...
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
+          file: godub
+          asset_name: godub-${{ github.ref }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          tag: ${{ github.ref }}
+          overwrite: true

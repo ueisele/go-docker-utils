@@ -1,45 +1,48 @@
 ---
 version: '3.8'
 services:
-    
-    godub:
-        image: godub
-        restart: always
-        networks:
-            public:
-                aliases:
-                    - public
-                priority: 1000
-            other:
-                aliases:
-                    - other
-                priority: 100
-            intern:
-                aliases:
-                    - intern
-                priority: 10
-        entrypoint: sh
-        tty: true
+
+  godub:
+    image: godub:latest
+    build:
+      context: .
+      dockerfile: Containerfile
+    restart: always
+    entrypoint: sh
+    tty: true
+    networks:
+      public:
+        aliases:
+          - public
+        priority: 1000
+      other:
+        aliases:
+          - other
+        priority: 100
+      intern:
+        aliases:
+          - intern
+        priority: 10
 
 networks:
-    public:
-        driver: bridge
-        enable_ipv6: false
-        ipam:
-            driver: default
-            config:
-            - subnet: fd01::/80
-    other:
-        driver: bridge
-        enable_ipv6: false
-        ipam:
-            driver: default
-            config:
-            - subnet: fd02::/80
-    intern:
-        driver: bridge
-        enable_ipv6: false
-        ipam:
-            driver: default
-            config:
-            - subnet: fd03::/80
+  public:
+    driver: bridge
+    enable_ipv6: false
+    ipam:
+      driver: default
+      config:
+        - subnet: fd01::/80
+  other:
+    driver: bridge
+    enable_ipv6: false
+    ipam:
+      driver: default
+      config:
+        - subnet: fd02::/80
+  intern:
+    driver: bridge
+    enable_ipv6: false
+    ipam:
+      driver: default
+      config:
+        - subnet: fd03::/80

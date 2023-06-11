@@ -290,7 +290,7 @@ Instructions about how to configure Remote Development: https://code.visualstudi
 ./build.sh
 ----
 
-You can also cross-compile _GoDub_ with the following command:
+.You can also cross-compile _GoDub_ with the following command:
 [source, bash]
 ----
 GOOS=linux GOARCH=arm64 ./build.sh
@@ -301,6 +301,13 @@ GOOS=linux GOARCH=arm64 ./build.sh
 [source, bash]
 ----
 ./godub
+----
+
+Hint: At the moment, the _godub_ binary is not a dynamic executable.
+If, during some changes, the binary is no longer statically linked by default, it can be achieved by adding the following parameter to the _go build_ command.
+[source, bash]
+----
+-ldflags "-s -w -linkmode external -extldflags -static"
 ----
 
 === Tests
