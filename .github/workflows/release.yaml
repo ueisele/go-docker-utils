@@ -39,6 +39,6 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           file: godub
-          asset_name: godub-${{ github.ref }}-${{ matrix.goos }}-${{ matrix.goarch }}
-          tag: ${{ github.ref_name }}
+          asset_name: godub-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          tag: ${{ github.ref }}
           overwrite: true
