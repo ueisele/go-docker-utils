@@ -40,5 +40,5 @@ jobs:
         with:
           file: godub
           asset_name: godub-${{ github.ref }}-${{ matrix.goos }}-${{ matrix.goarch }}
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref_name }}
           overwrite: true
